@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"time"
 
 	"golang.org/x/oauth2"
 	facebookOAuth "golang.org/x/oauth2/facebook"
@@ -16,7 +15,7 @@ type FacebookUserDetails struct {
 	Email  string
 	Gender string
 	Link   string
-	Birth  time.Time
+	Birth  string
 }
 
 type FacebookOauth struct {
