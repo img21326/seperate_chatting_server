@@ -27,7 +27,6 @@ type FacebookOauth struct {
 func NewFacebookOauth() *FacebookOauth {
 	return &FacebookOauth{
 		Oauth: GetFacebookOAuthConfig(),
-		Key:   getEnv("Facebook_CustomKey", RandString(15)),
 	}
 }
 
