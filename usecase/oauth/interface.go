@@ -19,8 +19,8 @@ type OauthUser struct {
 	Birth  time.Time
 }
 
-type UsecaseOauth interface {
+type UsecaseOauthInterFace interface {
 	GetLoginURL() string
-	GetRedirectToken(ctx context.Context, code string) (*OauthToken, error)
+	GetRedirectToken(ctx context.Context, key string, code string) (*OauthToken, error)
 	GetUser(token string) (*OauthUser, error)
 }
