@@ -57,14 +57,13 @@ func (u *AuthUsecase) GenerateToken(user *user.UserModel) (string, error) {
 	}
 
 	jwtExpireAt := time.Now().Add(u.JwtConfig.ExpireDuration).Unix()
-	token := jwt.NewWithClaims(jwt.SigningMethodES256, AuthClaims{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, AuthClaims{
 		StandardClaims: jwt.StandardClaims{
 			Subject:   findUser.FbID,
 			ExpiresAt: jwtExpireAt,
 		},
 		UserFbID: findUser.FbID,
 	})
-
 	tokenString, err := token.SignedString(u.JwtConfig.Key)
 	if err != nil {
 		return "", err
