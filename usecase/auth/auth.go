@@ -22,7 +22,7 @@ func NewAuthUsecase(jwtConfig JwtConfig, userRepo user.UserRepoInterFace) Usecas
 	}
 }
 
-func (u *AuthUsecase) GetUserByToken(token string) (user *user.UserModel, err error) {
+func (u *AuthUsecase) VerifyToken(token string) (userFbId string, err error) {
 	var claims AuthClaims
 	t, err := jwt.ParseWithClaims(token, &claims, func(jwtToken *jwt.Token) (interface{}, error) {
 		if _, ok := jwtToken.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -31,17 +31,13 @@ func (u *AuthUsecase) GetUserByToken(token string) (user *user.UserModel, err er
 		return u.JwtConfig.Key, nil
 	})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if !t.Valid {
-		return nil, errors.New("invalid token")
+		return "", errors.New("invalid token")
 	}
-	id := claims.UserFbID
-	user, err = u.UserRepo.FindByFbID(id)
-	if err != nil {
-		return nil, err
-	}
-	return user, nil
+	userFbId = claims.UserFbID
+	return
 }
 
 func (u *AuthUsecase) GenerateToken(user *user.UserModel) (string, error) {

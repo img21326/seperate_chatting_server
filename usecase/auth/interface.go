@@ -18,6 +18,6 @@ type AuthClaims struct {
 }
 
 type UsecaseAuthInterFace interface {
-	GetUserByToken(token string) (*user.UserModel, error)
+	VerifyToken(token string) (userFbId string, err error)
 	GenerateToken(user *user.UserModel) (string, error)
 }

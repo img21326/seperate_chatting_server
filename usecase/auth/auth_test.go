@@ -59,8 +59,8 @@ func TestGetUserByToken(t *testing.T) {
 
 	token, _ := AuthUsecase.GenerateToken(&user)
 
-	getUser, err := AuthUsecase.GetUserByToken(token)
+	userFbId, err := AuthUsecase.VerifyToken(token)
 
-	assert.Equal(t, user.FbID, getUser.FbID)
+	assert.Equal(t, user.FbID, userFbId)
 	assert.Equal(t, err, nil)
 }
