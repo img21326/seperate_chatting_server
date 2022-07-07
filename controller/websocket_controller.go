@@ -143,21 +143,20 @@ func (h *PairHub) run() {
 			}
 
 			room := &room.Room{
-				ID:      uuid.New(),
 				UserId1: client.User.ID,
 				UserId2: client.PairClient.User.ID,
 				Close:   false,
 			}
-			roomId, err := h.PairUsecase.CreateRoom(room)
+			err = h.PairUsecase.CreateRoom(room)
 			if err != nil {
 				log.Printf("create chat room err: %v", err)
 				client.Send <- []byte("pairError")
 				pairClient.Send <- []byte("pairError")
 			}
 			client.PairClient = pairClient
-			client.RoomId = roomId
+			client.RoomId = room.ID
 			pairClient.PairClient = client
-			pairClient.RoomId = roomId
+			pairClient.RoomId = room.ID
 
 			client.Send <- []byte("connect")
 			pairClient.Send <- []byte("connect")

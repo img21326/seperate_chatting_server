@@ -58,7 +58,7 @@ func (c *Client) ReadPump(saveMessageChan chan<- *message.MessageModel, closeCha
 			return
 		}
 
-		if c.PairClient == nil {
+		if c.RoomId == uuid.Nil {
 			return
 		}
 		if getMessage.Type == "message" {

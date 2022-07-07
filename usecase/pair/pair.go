@@ -58,7 +58,7 @@ func (u *PairUsecase) DeleteuserFromQueue(client *ws.Client) {
 	u.WaitRepo.Remove(client)
 }
 
-func (u *PairUsecase) CreateRoom(room *room.Room) (uuid.UUID, error) {
+func (u *PairUsecase) CreateRoom(room *room.Room) error {
 	return u.RoomRepo.Create(room)
 }
 

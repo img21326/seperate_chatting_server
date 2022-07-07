@@ -17,9 +17,9 @@ func NewRoomRepo(db *gorm.DB) RoomRepoInterface {
 	}
 }
 
-func (repo *RoomRepo) Create(room *Room) (_uuid uuid.UUID, err error) {
+func (repo *RoomRepo) Create(room *Room) (err error) {
 	room.ID = uuid.New()
-	return room.ID, repo.DB.Create(room).Error
+	return repo.DB.Create(room).Error
 }
 
 func (repo *RoomRepo) Close(roomId uuid.UUID) error {
