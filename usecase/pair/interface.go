@@ -20,7 +20,7 @@ type PairUsecaseInterface interface {
 	DeleteuserFromQueue(client *ws.Client)
 
 	CreateRoom(*room.Room) (uuid.UUID, error)
-	CloseRoom(uuid uuid.UUID)
+	CloseRoom(uuid uuid.UUID) error
 	FindRoomByUserId(userId uint) (*room.Room, error)
 
 	SaveMessage(*message.MessageModel)

@@ -16,6 +16,7 @@ type WebsocketController struct {
 	OnlineHub    *OnlineHub
 	PairHub      *PairHub
 	MessageQueue *MessageQueue
+	PairUsecase  pair.PairUsecaseInterface
 	WSUpgrader   websocket.Upgrader
 }
 
@@ -56,9 +57,10 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 	conn, _ := c.WSUpgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 
 	fb_id := ctx.MustGet("fb_id").(string)
-	user, err := c.PairHub.PairUsecase.FindUserByFbID(fb_id)
+	user, err := c.PairUsecase.FindUserByFbID(fb_id)
 	if err != nil {
 		log.Printf("connect ws can't find user: %v", err)
+		return
 	}
 
 	client := ws.Client{
@@ -66,7 +68,7 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 		Send: make(chan []byte, 256),
 		User: *user,
 	}
-	room, _ := c.PairHub.PairUsecase.FindRoomByUserId(user.ID)
+	room, _ := c.PairUsecase.FindRoomByUserId(user.ID)
 	if (room != nil) && (!room.Close) {
 		client.RoomId = room.ID
 		var pairId uint
@@ -75,7 +77,7 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 		} else {
 			pairId = room.UserId1
 		}
-		pairClient, err := c.PairHub.PairUsecase.FindOnlineUserByFbID(pairId)
+		pairClient, err := c.PairUsecase.FindOnlineUserByFbID(pairId)
 		if err == nil {
 			client.PairClient = pairClient
 			pairClient.PairClient = &client
@@ -116,10 +118,10 @@ type MessageQueue struct {
 func (q *MessageQueue) run() {
 	for {
 		select {
-		case message := <-q.SaveMessage:
-			q.PairUsecase.SaveMessage(message)
 		case roomId := <-q.Close:
 			q.PairUsecase.CloseRoom(roomId)
+		case message := <-q.SaveMessage:
+			q.PairUsecase.SaveMessage(message)
 		}
 	}
 }

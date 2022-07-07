@@ -8,7 +8,7 @@ type UserRepo struct {
 	DB *gorm.DB
 }
 
-func NewFacebookOauthUsecase(db *gorm.DB) UserRepoInterFace {
+func NewUserRepo(db *gorm.DB) UserRepoInterFace {
 	return &UserRepo{
 		DB: db,
 	}

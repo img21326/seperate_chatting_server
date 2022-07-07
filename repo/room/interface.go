@@ -10,7 +10,7 @@ type Room struct {
 }
 
 type RoomRepoInterface interface {
-	Create(room *Room) error
-	Close(roomId uuid.UUID)
+	Create(room *Room) (uuid.UUID, error)
+	Close(roomId uuid.UUID) error
 	FindByUserId(userId uint) (*Room, error)
 }
