@@ -5,16 +5,14 @@ import (
 	"sync"
 
 	"github.com/img21326/fb_chat/entity/ws"
-	"gorm.io/gorm"
 )
 
 type OnlineRepo struct {
-	DB        *gorm.DB
 	ClientMap map[uint]*ws.Client
 	lock      *sync.Mutex
 }
 
-func NewOnlineRepo(db *gorm.DB) OnlineRepoInterface {
+func NewOnlineRepo() OnlineRepoInterface {
 	return &OnlineRepo{
 		ClientMap: make(map[uint]*ws.Client),
 		lock:      &sync.Mutex{},

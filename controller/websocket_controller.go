@@ -20,7 +20,7 @@ type WebsocketController struct {
 	WSUpgrader   websocket.Upgrader
 }
 
-func NewWebsocketController(e *gin.Engine) {
+func NewWebsocketController(e *gin.Engine, pairUsecase pair.PairUsecaseInterface) {
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
@@ -46,6 +46,7 @@ func NewWebsocketController(e *gin.Engine) {
 		PairHub:      &pairHub,
 		MessageQueue: &messageQueue,
 		WSUpgrader:   upgrader,
+		PairUsecase:  pairUsecase,
 	}
 	go controller.OnlineHub.run()
 	go controller.PairHub.run()
