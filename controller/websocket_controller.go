@@ -2,13 +2,17 @@ package controller
 
 import (
 	"log"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/img21326/fb_chat/entity/ws"
+	"github.com/img21326/fb_chat/helper"
 	"github.com/img21326/fb_chat/repo/message"
 	"github.com/img21326/fb_chat/repo/room"
+	"github.com/img21326/fb_chat/repo/user"
+	"github.com/img21326/fb_chat/usecase/auth"
 	"github.com/img21326/fb_chat/usecase/pair"
 )
 
@@ -17,28 +21,35 @@ type WebsocketController struct {
 	PairHub      *PairHub
 	MessageQueue *MessageQueue
 	PairUsecase  pair.PairUsecaseInterface
+	AuthUsecase  auth.AuthUsecaseInterFace
 	WSUpgrader   websocket.Upgrader
 }
 
-func NewWebsocketController(e *gin.Engine, pairUsecase pair.PairUsecaseInterface) {
+func NewWebsocketController(e *gin.Engine, pairUsecase pair.PairUsecaseInterface, authUsecase auth.AuthUsecaseInterFace) {
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
 	}
 
 	var onlineHub = OnlineHub{
-		Register:   make(chan *ws.Client),
-		Unregister: make(chan *ws.Client),
+		Register:    make(chan *ws.Client),
+		Unregister:  make(chan *ws.Client),
+		PairUsecase: pairUsecase,
 	}
 
 	var pairHub = PairHub{
-		Add:    make(chan *ws.Client),
-		Delete: make(chan *ws.Client),
+		Add:         make(chan *ws.Client),
+		Delete:      make(chan *ws.Client),
+		PairUsecase: pairUsecase,
 	}
 
 	var messageQueue = MessageQueue{
 		SaveMessage: make(chan *message.MessageModel),
 		Close:       make(chan uuid.UUID),
+		PairUsecase: pairUsecase,
 	}
 
 	controller := &WebsocketController{
@@ -47,7 +58,9 @@ func NewWebsocketController(e *gin.Engine, pairUsecase pair.PairUsecaseInterface
 		MessageQueue: &messageQueue,
 		WSUpgrader:   upgrader,
 		PairUsecase:  pairUsecase,
+		AuthUsecase:  authUsecase,
 	}
+
 	go controller.OnlineHub.run()
 	go controller.PairHub.run()
 	go controller.MessageQueue.run()
@@ -55,22 +68,36 @@ func NewWebsocketController(e *gin.Engine, pairUsecase pair.PairUsecaseInterface
 }
 
 func (c *WebsocketController) WS(ctx *gin.Context) {
-	conn, _ := c.WSUpgrader.Upgrade(ctx.Writer, ctx.Request, nil)
-
-	fb_id := ctx.MustGet("fb_id").(string)
-	user, err := c.PairUsecase.FindUserByFbID(fb_id)
+	// token := ctx.Query("token")
+	// user, err := c.AuthUsecase.VerifyToken(token)
+	// if err != nil {
+	// 	log.Printf("token error: %v", err)
+	// 	return
+	// }
+	user := &user.UserModel{
+		FbID:   helper.RandString(16),
+		Name:   helper.RandString(5),
+		Gender: "male",
+	}
+	room, err := c.PairUsecase.FindRoomByUserId(user.ID)
 	if err != nil {
-		log.Printf("connect ws can't find user: %v", err)
+		log.Printf("find room error: %v", err)
 		return
 	}
-
+	conn, err := c.WSUpgrader.Upgrade(ctx.Writer, ctx.Request, nil)
+	if err != nil {
+		log.Printf("ws error: %v", err)
+		return
+	}
 	client := ws.Client{
 		Conn: conn,
 		Send: make(chan []byte, 256),
 		User: *user,
 	}
-	room, _ := c.PairUsecase.FindRoomByUserId(user.ID)
-	if (room != nil) && (!room.Close) {
+
+	log.Print("A")
+	if (room.ID != uuid.Nil) && (!room.Close) {
+		log.Print("B")
 		client.RoomId = room.ID
 		var pairId uint
 		if room.UserId1 == user.ID {
@@ -84,10 +111,18 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 			pairClient.PairClient = &client
 		}
 	} else {
-		client.WantToFind = ctx.Query("want")
+		log.Print("C")
+		want, ok := ctx.GetQuery("want")
+		if !ok {
+			log.Printf("ws not set want param")
+			client.Conn.Close()
+			return
+		}
+		client.WantToFind = want
 		c.PairHub.Add <- &client
 		client.Send <- []byte("pairing")
 	}
+	log.Print("D")
 
 	go client.ReadPump(c.MessageQueue.SaveMessage, c.MessageQueue.Close, c.PairHub.Delete)
 	go client.WritePump()
@@ -143,28 +178,27 @@ func (h *PairHub) run() {
 			if err != nil {
 				//如果配對失敗 就加入等待中
 				h.PairUsecase.AddUserToQueue(client)
-				return
-			}
+			} else {
+				// 以下為配對成功所做的事
+				room := &room.Room{
+					UserId1: client.User.ID,
+					UserId2: pairClient.User.ID,
+					Close:   false,
+				}
+				err = h.PairUsecase.CreateRoom(room)
+				if err != nil {
+					log.Printf("create chat room err: %v", err)
+					client.Send <- []byte("pairError")
+					pairClient.Send <- []byte("pairError")
+				}
+				client.PairClient = pairClient
+				client.RoomId = room.ID
+				pairClient.PairClient = client
+				pairClient.RoomId = room.ID
 
-			// 以下為配對成功所做的事
-			room := &room.Room{
-				UserId1: client.User.ID,
-				UserId2: client.PairClient.User.ID,
-				Close:   false,
+				client.Send <- []byte("connect")
+				pairClient.Send <- []byte("connect")
 			}
-			err = h.PairUsecase.CreateRoom(room)
-			if err != nil {
-				log.Printf("create chat room err: %v", err)
-				client.Send <- []byte("pairError")
-				pairClient.Send <- []byte("pairError")
-			}
-			client.PairClient = pairClient
-			client.RoomId = room.ID
-			pairClient.PairClient = client
-			pairClient.RoomId = room.ID
-
-			client.Send <- []byte("connect")
-			pairClient.Send <- []byte("connect")
 		case client := <-h.Delete:
 			h.PairUsecase.DeleteuserFromQueue(client)
 		}

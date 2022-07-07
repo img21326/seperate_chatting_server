@@ -14,10 +14,10 @@ type JwtConfig struct {
 
 type AuthClaims struct {
 	jwt.StandardClaims
-	UserFbID string
+	User user.UserModel
 }
 
-type UsecaseAuthInterFace interface {
-	VerifyToken(token string) (userFbId string, err error)
+type AuthUsecaseInterFace interface {
+	VerifyToken(token string) (user *user.UserModel, err error)
 	GenerateToken(user *user.UserModel) (string, error)
 }

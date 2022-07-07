@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
@@ -12,6 +13,7 @@ import (
 	"github.com/img21326/fb_chat/repo/room"
 	"github.com/img21326/fb_chat/repo/user"
 	"github.com/img21326/fb_chat/repo/wait"
+	"github.com/img21326/fb_chat/usecase/auth"
 	"github.com/img21326/fb_chat/usecase/oauth"
 	"github.com/img21326/fb_chat/usecase/pair"
 	"gorm.io/gorm"
@@ -43,8 +45,18 @@ func main() {
 
 	PairUsecase := pair.NewPairUsecase(userRepo, messageRepo, onlineRepo, roomRepo, waitRepo)
 
-	controller.NewLoginController(server, FacebookUsecase)
-	controller.NewWebsocketController(server, PairUsecase)
+	jwtConfig := auth.JwtConfig{
+		Key:            []byte("secret168"),
+		ExpireDuration: time.Hour * 24,
+	}
+	AuthUsecase := auth.NewAuthUsecase(jwtConfig, userRepo)
+	// jwtMiddleware := jwt.NewJWTValidMiddleware(AuthUsecase)
+
+	// jwtRoute := server.Group("/auth")
+	// jwtRoute.Use(jwtMiddleware.ValidHeaderToken)
+
+	controller.NewLoginController(server, FacebookUsecase, AuthUsecase)
+	controller.NewWebsocketController(server, PairUsecase, AuthUsecase)
 
 	server.Run(":8081")
 }

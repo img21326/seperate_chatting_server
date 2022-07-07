@@ -13,7 +13,7 @@ type FacebookOauthUsecase struct {
 	FacebookOauth *helper.FacebookOauth
 }
 
-func NewFacebookOauthUsecase(f *helper.FacebookOauth) UsecaseOauthInterFace {
+func NewFacebookOauthUsecase(f *helper.FacebookOauth) OauthUsecaseInterFace {
 	return &FacebookOauthUsecase{
 		FacebookOauth: f,
 	}

@@ -2,6 +2,7 @@ package wait
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/img21326/fb_chat/entity/ws"
@@ -52,14 +53,17 @@ func (r *WaitRepo) GetFirst(client *ws.Client) (rclient *ws.Client, err error) {
 	defer func() {
 		r.lock.Unlock()
 	}()
+	fmt.Printf("A")
 	if _, isExist := r.ClientMap[client.WantToFind]; !isExist {
 		err = errors.New("QueueIsEmpty")
 		return
 	}
+	fmt.Printf("B")
 	if len(r.ClientMap[client.WantToFind]) < 1 {
 		err = errors.New("QueueIsEmpty")
 		return
 	}
+	fmt.Printf("C")
 	stat := false
 	var index int
 	for i := range r.ClientMap[client.WantToFind] {
@@ -69,11 +73,14 @@ func (r *WaitRepo) GetFirst(client *ws.Client) (rclient *ws.Client, err error) {
 			break
 		}
 	}
+	fmt.Printf("D")
 	if !stat {
 		err = errors.New("NotFoundPairUser")
 		return
 	}
+	fmt.Printf("E")
 	rclient = r.ClientMap[client.WantToFind][index]
 	r.ClientMap[client.WantToFind] = append(r.ClientMap[client.WantToFind][:index], r.ClientMap[client.WantToFind][index+1:]...)
+	fmt.Printf("F")
 	return
 }

@@ -15,14 +15,14 @@ type AuthUsecase struct {
 	UserRepo  user.UserRepoInterFace
 }
 
-func NewAuthUsecase(jwtConfig JwtConfig, userRepo user.UserRepoInterFace) UsecaseAuthInterFace {
+func NewAuthUsecase(jwtConfig JwtConfig, userRepo user.UserRepoInterFace) AuthUsecaseInterFace {
 	return &AuthUsecase{
 		JwtConfig: jwtConfig,
 		UserRepo:  userRepo,
 	}
 }
 
-func (u *AuthUsecase) VerifyToken(token string) (userFbId string, err error) {
+func (u *AuthUsecase) VerifyToken(token string) (user *user.UserModel, err error) {
 	var claims AuthClaims
 	t, err := jwt.ParseWithClaims(token, &claims, func(jwtToken *jwt.Token) (interface{}, error) {
 		if _, ok := jwtToken.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -31,34 +31,37 @@ func (u *AuthUsecase) VerifyToken(token string) (userFbId string, err error) {
 		return u.JwtConfig.Key, nil
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if !t.Valid {
-		return "", errors.New("invalid token")
+		return nil, errors.New("invalid token")
 	}
-	userFbId = claims.UserFbID
+	user = &claims.User
 	return
 }
 
 func (u *AuthUsecase) GenerateToken(user *user.UserModel) (string, error) {
 	findUser, err := u.UserRepo.FindByFbID(user.FbID)
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return "", err
+	}
 	if err == gorm.ErrRecordNotFound {
 		err = u.UserRepo.Create(user)
 		if err != nil {
 			return "", err
 		}
+		findUser, err = u.UserRepo.FindByFbID(user.FbID)
+		if err != nil {
+			return "", err
+		}
 	}
-	if err != nil && err != gorm.ErrRecordNotFound {
-		return "", err
-	}
-
 	jwtExpireAt := time.Now().Add(u.JwtConfig.ExpireDuration).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, AuthClaims{
 		StandardClaims: jwt.StandardClaims{
 			Subject:   findUser.FbID,
 			ExpiresAt: jwtExpireAt,
 		},
-		UserFbID: findUser.FbID,
+		User: *findUser,
 	})
 	tokenString, err := token.SignedString(u.JwtConfig.Key)
 	if err != nil {

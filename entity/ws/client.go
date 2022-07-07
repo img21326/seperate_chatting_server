@@ -38,8 +38,10 @@ func (c *Client) ReadPump(saveMessageChan chan<- *message.MessageModel, closeCha
 	defer func() {
 		deleteChan <- c
 		c.Conn.Close()
-		c.PairClient.PairClient = nil
 		close(c.Send)
+		if c.PairClient.PairClient != nil {
+			c.PairClient.PairClient = nil
+		}
 	}()
 	c.Conn.SetReadLimit(maxMessageSize)
 	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
@@ -48,7 +50,7 @@ func (c *Client) ReadPump(saveMessageChan chan<- *message.MessageModel, closeCha
 		_, messageByte, err := c.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
+				log.Printf("websocket unexcept error: %v", err)
 			}
 			break
 		}

@@ -27,7 +27,7 @@ func (repo *RoomRepo) Close(roomId uuid.UUID) error {
 }
 
 func (repo *RoomRepo) FindByUserId(userId uint) (room *Room, err error) {
-	if err := repo.DB.Where("UserId1 = ?", userId).Or("UserId12 = ?", userId).Find(&room).Error; err != nil {
+	if err := repo.DB.Where("user_id1 = ?", userId).Or("user_id2 = ?", userId).Find(&room).Error; err != nil {
 		return nil, err
 	}
 	if room.Close {

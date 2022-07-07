@@ -1,6 +1,8 @@
 package user
 
 import (
+	"fmt"
+
 	"gorm.io/gorm"
 )
 
@@ -22,7 +24,9 @@ func (repo *UserRepo) Create(u *UserModel) error {
 }
 
 func (repo *UserRepo) FindByFbID(FbId string) (u *UserModel, err error) {
-	if err := repo.DB.Where(u.FbID, FbId).Find(&u).Error; err != nil {
+	err = repo.DB.Where("fb_id = ?", FbId).First(&u).Error
+	if err != nil {
+		fmt.Printf("%+v\n", err)
 		return nil, err
 	}
 	return u, nil
