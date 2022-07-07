@@ -33,11 +33,16 @@ func (r *WaitRepo) Remove(client *ws.Client) {
 		r.lock.Unlock()
 	}()
 	var index int
+	stat := false
 	for i := range r.ClientMap[client.User.Gender] {
 		if r.ClientMap[client.User.Gender][i].User.FbID == client.User.FbID {
 			index = i
+			stat = true
 			break
 		}
+	}
+	if !stat {
+		return
 	}
 	r.ClientMap[client.User.Gender] = append(r.ClientMap[client.User.Gender][:index], r.ClientMap[client.User.Gender][index+1:]...)
 }

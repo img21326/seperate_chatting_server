@@ -25,7 +25,7 @@ func (f *FacebookOauthUsecase) GetLoginURL() string {
 
 func (f *FacebookOauthUsecase) GetRedirectToken(ctx context.Context, key string, code string) (*OauthToken, error) {
 	if key != f.FacebookOauth.Key {
-		return nil, errors.New("Except Key")
+		return nil, errors.New("ExceptKey")
 	}
 	token, err := f.FacebookOauth.Oauth.Exchange(ctx, code)
 	if err != nil {
