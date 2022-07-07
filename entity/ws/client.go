@@ -15,6 +15,7 @@ type Client struct {
 	Conn       *websocket.Conn
 	Send       chan []byte
 	User       user.UserModel
+	WantToFind string
 	PairClient *Client
 	RoomId     uuid.UUID
 }

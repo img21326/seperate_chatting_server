@@ -47,20 +47,33 @@ func (r *WaitRepo) Remove(client *ws.Client) {
 	r.ClientMap[client.User.Gender] = append(r.ClientMap[client.User.Gender][:index], r.ClientMap[client.User.Gender][index+1:]...)
 }
 
-func (r *WaitRepo) GetFirst(gender string) (client *ws.Client, err error) {
+func (r *WaitRepo) GetFirst(client *ws.Client) (rclient *ws.Client, err error) {
 	r.lock.Lock()
 	defer func() {
 		r.lock.Unlock()
 	}()
-	if _, isExist := r.ClientMap[gender]; !isExist {
+	if _, isExist := r.ClientMap[client.WantToFind]; !isExist {
 		err = errors.New("QueueIsEmpty")
 		return
 	}
-	if len(r.ClientMap[gender]) < 1 {
+	if len(r.ClientMap[client.WantToFind]) < 1 {
 		err = errors.New("QueueIsEmpty")
 		return
 	}
-	client = r.ClientMap[gender][0]
-	r.ClientMap[gender] = r.ClientMap[gender][1:]
+	stat := false
+	var index int
+	for i := range r.ClientMap[client.WantToFind] {
+		if r.ClientMap[client.WantToFind][i].WantToFind == client.User.Gender {
+			index = i
+			stat = true
+			break
+		}
+	}
+	if !stat {
+		err = errors.New("NotFoundPairUser")
+		return
+	}
+	rclient = r.ClientMap[client.WantToFind][index]
+	r.ClientMap[client.WantToFind] = append(r.ClientMap[client.WantToFind][:index], r.ClientMap[client.WantToFind][index+1:]...)
 	return
 }

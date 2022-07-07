@@ -15,7 +15,7 @@ type PairUsecaseInterface interface {
 
 	FindUserByFbID(FbId string) (*user.UserModel, error)
 
-	GetFirstQueueUser(gender string) (*ws.Client, error)
+	GetFirstQueueUser(client *ws.Client) (*ws.Client, error)
 	AddUserToQueue(client *ws.Client)
 	DeleteuserFromQueue(client *ws.Client)
 

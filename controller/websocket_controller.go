@@ -84,6 +84,7 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 			pairClient.PairClient = &client
 		}
 	} else {
+		client.WantToFind = ctx.Query("want")
 		c.PairHub.Add <- &client
 		client.Send <- []byte("pairing")
 	}
@@ -137,12 +138,15 @@ func (h *PairHub) run() {
 	for {
 		select {
 		case client := <-h.Add:
-			pairClient, err := h.PairUsecase.GetFirstQueueUser(client.User.Gender)
+			// 先試著配對看看
+			pairClient, err := h.PairUsecase.GetFirstQueueUser(client)
 			if err != nil {
+				//如果配對失敗 就加入等待中
 				h.PairUsecase.AddUserToQueue(client)
 				return
 			}
 
+			// 以下為配對成功所做的事
 			room := &room.Room{
 				UserId1: client.User.ID,
 				UserId2: client.PairClient.User.ID,
