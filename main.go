@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
+	"github.com/go-redis/redis/v8"
 	"github.com/img21326/fb_chat/controller"
 	"github.com/img21326/fb_chat/helper"
 	"github.com/img21326/fb_chat/repo/message"
@@ -14,8 +15,8 @@ import (
 	"github.com/img21326/fb_chat/repo/user"
 	"github.com/img21326/fb_chat/repo/wait"
 	"github.com/img21326/fb_chat/usecase/auth"
+	"github.com/img21326/fb_chat/usecase/hub"
 	"github.com/img21326/fb_chat/usecase/oauth"
-	"github.com/img21326/fb_chat/usecase/pair"
 	"gorm.io/gorm"
 )
 
@@ -28,11 +29,21 @@ func initDB() *gorm.DB {
 	return db
 }
 
+func initRedis() *redis.Client { // 實體化redis.Client 並返回實體的位址
+	client := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
+	return client
+}
+
 func main() {
 
 	db := initDB()
+	redis := initRedis()
 
-	messageRepo := message.NewMessageRepo(db)
+	messageRepo := message.NewMessageRepo(db, redis)
 	onlineRepo := online.NewOnlineRepo()
 	roomRepo := room.NewRoomRepo(db)
 	userRepo := user.NewUserRepo(db)
@@ -43,7 +54,7 @@ func main() {
 	FacebookOauth := helper.NewFacebookOauth()
 	FacebookUsecase := oauth.NewFacebookOauthUsecase(FacebookOauth)
 
-	PairUsecase := pair.NewPairUsecase(userRepo, messageRepo, onlineRepo, roomRepo, waitRepo)
+	Hubsecase := hub.NewHubUsecase(userRepo, messageRepo, onlineRepo, roomRepo, waitRepo)
 
 	jwtConfig := auth.JwtConfig{
 		Key:            []byte("secret168"),
@@ -56,7 +67,7 @@ func main() {
 	// jwtRoute.Use(jwtMiddleware.ValidHeaderToken)
 
 	controller.NewLoginController(server, FacebookUsecase, AuthUsecase)
-	controller.NewWebsocketController(server, PairUsecase, AuthUsecase)
+	controller.NewWebsocketController(server, Hubsecase, AuthUsecase, redis)
 
 	server.Run(":8081")
 }

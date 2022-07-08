@@ -2,6 +2,7 @@ package room
 
 import (
 	"errors"
+	"log"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -23,13 +24,14 @@ func (repo *RoomRepo) Create(room *Room) (err error) {
 }
 
 func (repo *RoomRepo) Close(roomId uuid.UUID) error {
-	return repo.DB.Model(&Room{}).Where("room_id = ?", roomId).Update("close", false).Error
+	return repo.DB.Model(&Room{}).Where("id = ?", roomId).Update("close", true).Error
 }
 
 func (repo *RoomRepo) FindByUserId(userId uint) (room *Room, err error) {
-	if err := repo.DB.Where("user_id1 = ?", userId).Or("user_id2 = ?", userId).Find(&room).Error; err != nil {
+	if err := repo.DB.Where("user_id1 = ?", userId).Or("user_id2 = ?", userId).Last(&room).Error; err != nil {
 		return nil, err
 	}
+	log.Printf("room: %+v", room)
 	if room.Close {
 		return nil, errors.New("RoomIsClosed")
 	}

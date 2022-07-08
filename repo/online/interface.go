@@ -1,9 +1,9 @@
 package online
 
-import "github.com/img21326/fb_chat/entity/ws"
+import "github.com/img21326/fb_chat/ws/client"
 
 type OnlineRepoInterface interface {
-	Register(client *ws.Client)
-	UnRegister(client *ws.Client)
-	FindUserByFbID(userId uint) (*ws.Client, error)
+	Register(client *client.Client)
+	UnRegister(client *client.Client)
+	FindUserByFbID(userId uint) (*client.Client, error)
 }

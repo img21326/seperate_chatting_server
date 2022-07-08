@@ -45,8 +45,11 @@ require (
 )
 
 require (
+	github.com/cespare/xxhash/v2 v2.1.2 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/glebarez/go-sqlite v1.17.2 // indirect
 	github.com/glebarez/sqlite v1.4.5 // indirect
+	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/mattn/go-sqlite3 v1.14.12 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
 	modernc.org/libc v1.16.8 // indirect

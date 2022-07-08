@@ -1,4 +1,4 @@
-package ws
+package client
 
 import (
 	"encoding/json"
@@ -9,6 +9,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/img21326/fb_chat/repo/message"
 	"github.com/img21326/fb_chat/repo/user"
+	"github.com/img21326/fb_chat/ws"
 )
 
 type Client struct {
@@ -16,8 +17,8 @@ type Client struct {
 	Send       chan []byte
 	User       user.UserModel
 	WantToFind string
-	PairClient *Client
 	RoomId     uuid.UUID
+	PairId     uint
 }
 
 const (
@@ -34,14 +35,12 @@ const (
 	maxMessageSize = 512
 )
 
-func (c *Client) ReadPump(saveMessageChan chan<- *message.MessageModel, closeChan chan<- uuid.UUID, deleteChan chan<- *Client) {
+func (c *Client) ReadPump(PublishChan chan<- message.PublishMessage, unRegisterChan chan<- *Client, deletePairChan chan<- *Client) {
 	defer func() {
-		deleteChan <- c
+		unRegisterChan <- c
+		deletePairChan <- c
 		c.Conn.Close()
 		close(c.Send)
-		if c.PairClient.PairClient != nil {
-			c.PairClient.PairClient = nil
-		}
 	}()
 	c.Conn.SetReadLimit(maxMessageSize)
 	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
@@ -54,39 +53,45 @@ func (c *Client) ReadPump(saveMessageChan chan<- *message.MessageModel, closeCha
 			}
 			break
 		}
-		var getMessage Message
+		var getMessage ws.WebsocketMessage
 		err = json.Unmarshal(messageByte, &getMessage)
 		if err != nil {
 			log.Printf("error decode json: %v", err)
-			return
+			continue
 		}
+		log.Printf("[websocket client] get message from user: %v, message: %+v", c.User.ID, getMessage)
 
+		// 沒有在房間裡 不做任何動作
 		if c.RoomId == uuid.Nil {
-			return
+			continue
 		}
 		if getMessage.Type == "message" {
-			if c.PairClient != nil {
-				c.PairClient.Send <- []byte(messageByte)
-			}
-			messageModel := &message.MessageModel{
+			messageModel := message.MessageModel{
 				RoomId:  c.RoomId,
 				UserId:  c.User.ID,
 				Message: getMessage.Message,
+				Time:    time.Time(getMessage.Time),
 			}
-			saveMessageChan <- messageModel
-			return
+			publishMessage := message.PublishMessage{
+				Type:     "message",
+				SendFrom: c.User.ID,
+				SendTo:   c.PairId,
+				Payload:  messageModel,
+			}
+			PublishChan <- publishMessage
+			continue
 		}
 		if getMessage.Type == "leave" {
-			if c.PairClient != nil {
-				c.PairClient.Send <- []byte(messageByte)
+			publishMessage := message.PublishMessage{
+				Type:     "leave",
+				SendFrom: c.User.ID,
+				SendTo:   c.PairId,
+				Payload:  c.RoomId,
 			}
-			c.PairClient.RoomId = uuid.Nil
-			c.PairClient.PairClient = nil
-			c.PairClient.Conn.Close()
+			PublishChan <- publishMessage
 			c.RoomId = uuid.Nil
-			c.PairClient = nil
+			c.PairId = 0
 			c.Conn.Close()
-			closeChan <- c.RoomId
 			break
 		}
 	}

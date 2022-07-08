@@ -4,22 +4,22 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/img21326/fb_chat/entity/ws"
+	"github.com/img21326/fb_chat/ws/client"
 )
 
 type OnlineRepo struct {
-	ClientMap map[uint]*ws.Client
+	ClientMap map[uint]*client.Client
 	lock      *sync.Mutex
 }
 
 func NewOnlineRepo() OnlineRepoInterface {
 	return &OnlineRepo{
-		ClientMap: make(map[uint]*ws.Client),
+		ClientMap: make(map[uint]*client.Client),
 		lock:      &sync.Mutex{},
 	}
 }
 
-func (r *OnlineRepo) Register(client *ws.Client) {
+func (r *OnlineRepo) Register(client *client.Client) {
 	r.lock.Lock()
 	defer func() {
 		r.lock.Unlock()
@@ -27,7 +27,7 @@ func (r *OnlineRepo) Register(client *ws.Client) {
 	r.ClientMap[client.User.ID] = client
 }
 
-func (r *OnlineRepo) UnRegister(client *ws.Client) {
+func (r *OnlineRepo) UnRegister(client *client.Client) {
 	r.lock.Lock()
 	defer func() {
 		r.lock.Unlock()
@@ -37,7 +37,7 @@ func (r *OnlineRepo) UnRegister(client *ws.Client) {
 	}
 }
 
-func (r *OnlineRepo) FindUserByFbID(userId uint) (*ws.Client, error) {
+func (r *OnlineRepo) FindUserByFbID(userId uint) (*client.Client, error) {
 	if client, ok := r.ClientMap[userId]; ok {
 		return client, nil
 	} else {
