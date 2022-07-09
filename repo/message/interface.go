@@ -5,23 +5,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
-type PublishMessage struct {
-	Type     string      `json:"type"`
-	SendFrom uint        `json:"sendFrom"`
-	SendTo   uint        `json:"sendTo"`
-	Payload  interface{} `json:"payload"`
-}
-
-type SendToUserMessage struct {
-	Type    string      `json:"type"`
-	Payload interface{} `json:"payload"`
-}
-
 type MessageModel struct {
-	gorm.Model
+	ID      uint `gorm:"primarykey"`
 	RoomId  uuid.UUID
 	UserId  uint
 	Message string

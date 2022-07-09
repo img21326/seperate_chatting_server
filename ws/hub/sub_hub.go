@@ -6,12 +6,12 @@ import (
 	"log"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/img21326/fb_chat/repo/message"
+	"github.com/img21326/fb_chat/ws/messageType"
 )
 
 type SubHub struct {
-	OnlineHub *OnlineHub
-	Redis     *redis.Client
+	ReceiveChan chan messageType.PublishMessage
+	Redis       *redis.Client
 }
 
 func (h *SubHub) MessageController(ctx context.Context) {
@@ -22,11 +22,11 @@ func (h *SubHub) MessageController(ctx context.Context) {
 		if err != nil {
 			log.Printf("sub message receive error: %v", err)
 		}
-		var redisMessage message.PublishMessage
+		var redisMessage messageType.PublishMessage
 
 		if err := json.Unmarshal([]byte(msg.Payload), &redisMessage); err != nil {
 			log.Printf("pubsub message json load error: %v", err)
 		}
-		h.OnlineHub.ReceiveChan <- redisMessage
+		h.ReceiveChan <- redisMessage
 	}
 }

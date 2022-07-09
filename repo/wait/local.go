@@ -12,7 +12,7 @@ type WaitRepo struct {
 	lock      *sync.Mutex
 }
 
-func NewWaitRepo() WaitRepoInterface {
+func NewLocalWaitRepo() WaitRepoInterface {
 	return &WaitRepo{
 		ClientMap: make(map[string][]*client.Client),
 		lock:      &sync.Mutex{},

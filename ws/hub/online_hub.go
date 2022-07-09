@@ -10,13 +10,14 @@ import (
 	"github.com/img21326/fb_chat/repo/message"
 	"github.com/img21326/fb_chat/usecase/hub"
 	"github.com/img21326/fb_chat/ws/client"
+	"github.com/img21326/fb_chat/ws/messageType"
 )
 
 type OnlineHub struct {
 	Register     chan *client.Client
 	Unregister   chan *client.Client
-	ReceiveChan  chan message.PublishMessage
-	PublishChan  chan message.PublishMessage
+	ReceiveChan  chan messageType.PublishMessage
+	PublishChan  chan messageType.PublishMessage
 	MessageQueue *MessageQueue
 	HubUsecase   hub.HubUsecaseInterface
 }
@@ -33,7 +34,7 @@ func (h *OnlineHub) Run() {
 			log.Printf("[onlineHub] %v unregister success\n", client.User.ID)
 		case receiveMessage := <-h.ReceiveChan:
 			log.Printf("[onlineHub] receive message: %+v\n", receiveMessage)
-			sendMessage := message.SendToUserMessage{
+			sendMessage := messageType.SendToUserMessage{
 				Type:    receiveMessage.Type,
 				Payload: receiveMessage.Payload,
 			}
@@ -95,7 +96,6 @@ func (h *OnlineHub) Run() {
 				log.Printf("[onlineHub]publish message error: %v", err)
 				continue
 			}
-			log.Printf("[onlineHub]send message success")
 		}
 	}
 }

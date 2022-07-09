@@ -47,7 +47,7 @@ func main() {
 	onlineRepo := online.NewOnlineRepo()
 	roomRepo := room.NewRoomRepo(db)
 	userRepo := user.NewUserRepo(db)
-	waitRepo := wait.NewWaitRepo()
+	waitRepo := wait.NewLocalWaitRepo()
 
 	server := gin.Default()
 

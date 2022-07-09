@@ -28,10 +28,10 @@ func (repo *RoomRepo) Close(roomId uuid.UUID) error {
 }
 
 func (repo *RoomRepo) FindByUserId(userId uint) (room *Room, err error) {
-	if err := repo.DB.Where("user_id1 = ?", userId).Or("user_id2 = ?", userId).Last(&room).Error; err != nil {
+	if err := repo.DB.Debug().Order("`rooms`.`created_at` desc").Where("user_id1 = ?", userId).Or("user_id2 = ?", userId).First(&room).Error; err != nil {
 		return nil, err
 	}
-	log.Printf("room: %+v", room)
+	log.Printf("find room result: [roomID: %v, Close: %v]", room.ID, room.Close)
 	if room.Close {
 		return nil, errors.New("RoomIsClosed")
 	}

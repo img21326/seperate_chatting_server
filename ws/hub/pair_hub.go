@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/img21326/fb_chat/repo/message"
 	"github.com/img21326/fb_chat/repo/room"
 	"github.com/img21326/fb_chat/usecase/hub"
 	"github.com/img21326/fb_chat/ws/client"
+	"github.com/img21326/fb_chat/ws/messageType"
 )
 
 type PairHub struct {
-	Add        chan *client.Client
-	Delete     chan *client.Client
-	OnlineHub  *OnlineHub
-	HubUsecase hub.HubUsecaseInterface
+	Add         chan *client.Client
+	Delete      chan *client.Client
+	PublishChan chan messageType.PublishMessage
+	HubUsecase  hub.HubUsecaseInterface
 }
 
 func (h *PairHub) Run() {
@@ -38,35 +38,35 @@ func (h *PairHub) Run() {
 				err = h.HubUsecase.CreateRoom(room)
 				if err != nil {
 					log.Printf("create chat room err: %v", err)
-					m1 := message.PublishMessage{
+					m1 := messageType.PublishMessage{
 						Type:     "pairError",
 						SendFrom: 0,
 						SendTo:   pairClient.User.ID,
 						Payload:  fmt.Sprintf("%v", err),
 					}
-					m2 := message.PublishMessage{
+					m2 := messageType.PublishMessage{
 						Type:     "pairError",
 						SendFrom: 0,
 						SendTo:   client.User.ID,
 						Payload:  fmt.Sprintf("%v", err),
 					}
-					h.OnlineHub.PublishChan <- m1
-					h.OnlineHub.PublishChan <- m2
+					h.PublishChan <- m1
+					h.PublishChan <- m2
 				}
-				m1 := message.PublishMessage{
+				m1 := messageType.PublishMessage{
 					Type:     "pairSuccess",
 					SendFrom: client.User.ID,
 					SendTo:   pairClient.User.ID,
 					Payload:  room.ID,
 				}
-				m2 := message.PublishMessage{
+				m2 := messageType.PublishMessage{
 					Type:     "pairSuccess",
 					SendFrom: pairClient.User.ID,
 					SendTo:   client.User.ID,
 					Payload:  room.ID,
 				}
-				h.OnlineHub.PublishChan <- m1
-				h.OnlineHub.PublishChan <- m2
+				h.PublishChan <- m1
+				h.PublishChan <- m2
 				log.Printf("[pairHub] pair user: %v %v in room: %v\n", client.User.ID, pairClient.User.ID, room.ID)
 			}
 		case client := <-h.Delete:

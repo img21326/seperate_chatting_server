@@ -17,6 +17,7 @@ import (
 	hubUsecase "github.com/img21326/fb_chat/usecase/hub"
 	"github.com/img21326/fb_chat/ws/client"
 	"github.com/img21326/fb_chat/ws/hub"
+	"github.com/img21326/fb_chat/ws/messageType"
 	"gorm.io/gorm"
 )
 
@@ -47,22 +48,22 @@ func NewWebsocketController(e *gin.Engine, hubUsecase hubUsecase.HubUsecaseInter
 	var onlineHub = hub.OnlineHub{
 		Register:     make(chan *client.Client, 1024),
 		Unregister:   make(chan *client.Client, 1024),
-		ReceiveChan:  make(chan message.PublishMessage, 1024),
-		PublishChan:  make(chan message.PublishMessage, 1024),
+		ReceiveChan:  make(chan messageType.PublishMessage, 1024),
+		PublishChan:  make(chan messageType.PublishMessage, 1024),
 		MessageQueue: &messageQueue,
 		HubUsecase:   hubUsecase,
 	}
 
 	var pairHub = hub.PairHub{
-		Add:        make(chan *client.Client, 1024),
-		Delete:     make(chan *client.Client, 1024),
-		OnlineHub:  &onlineHub,
-		HubUsecase: hubUsecase,
+		Add:         make(chan *client.Client, 1024),
+		Delete:      make(chan *client.Client, 1024),
+		PublishChan: onlineHub.PublishChan,
+		HubUsecase:  hubUsecase,
 	}
 
 	var subHub = hub.SubHub{
-		OnlineHub: &onlineHub,
-		Redis:     redis,
+		ReceiveChan: onlineHub.ReceiveChan,
+		Redis:       redis,
 	}
 
 	controller := &WebsocketController{
@@ -126,7 +127,7 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 		}
 		client.Send <- []byte("{'type': 'inRoom'}")
 	} else {
-		log.Printf("new ws connection: %v new pairing", user.Name)
+		log.Printf("new ws connection: %v with new pairing", user.Name)
 		want, ok := ctx.GetQuery("want")
 		if !ok {
 			log.Printf("ws not set want param")

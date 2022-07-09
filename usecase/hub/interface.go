@@ -8,6 +8,7 @@ import (
 	"github.com/img21326/fb_chat/repo/room"
 	"github.com/img21326/fb_chat/repo/user"
 	"github.com/img21326/fb_chat/ws/client"
+	"github.com/img21326/fb_chat/ws/messageType"
 )
 
 type HubUsecaseInterface interface {
@@ -26,5 +27,5 @@ type HubUsecaseInterface interface {
 	FindRoomByUserId(userId uint) (*room.Room, error)
 
 	SaveMesssage(context.Context, *message.MessageModel)
-	SendMessage(context.Context, message.PublishMessage) error
+	SendMessage(context.Context, messageType.PublishMessage) error
 }

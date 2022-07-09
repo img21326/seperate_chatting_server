@@ -10,6 +10,7 @@ import (
 	"github.com/img21326/fb_chat/repo/message"
 	"github.com/img21326/fb_chat/repo/user"
 	"github.com/img21326/fb_chat/ws"
+	"github.com/img21326/fb_chat/ws/messageType"
 )
 
 type Client struct {
@@ -35,7 +36,7 @@ const (
 	maxMessageSize = 512
 )
 
-func (c *Client) ReadPump(PublishChan chan<- message.PublishMessage, unRegisterChan chan<- *Client, deletePairChan chan<- *Client) {
+func (c *Client) ReadPump(PublishChan chan<- messageType.PublishMessage, unRegisterChan chan<- *Client, deletePairChan chan<- *Client) {
 	defer func() {
 		unRegisterChan <- c
 		deletePairChan <- c
@@ -72,7 +73,7 @@ func (c *Client) ReadPump(PublishChan chan<- message.PublishMessage, unRegisterC
 				Message: getMessage.Message,
 				Time:    time.Time(getMessage.Time),
 			}
-			publishMessage := message.PublishMessage{
+			publishMessage := messageType.PublishMessage{
 				Type:     "message",
 				SendFrom: c.User.ID,
 				SendTo:   c.PairId,
@@ -82,7 +83,7 @@ func (c *Client) ReadPump(PublishChan chan<- message.PublishMessage, unRegisterC
 			continue
 		}
 		if getMessage.Type == "leave" {
-			publishMessage := message.PublishMessage{
+			publishMessage := messageType.PublishMessage{
 				Type:     "leave",
 				SendFrom: c.User.ID,
 				SendTo:   c.PairId,

@@ -11,6 +11,7 @@ import (
 	"github.com/img21326/fb_chat/repo/user"
 	"github.com/img21326/fb_chat/repo/wait"
 	"github.com/img21326/fb_chat/ws/client"
+	"github.com/img21326/fb_chat/ws/messageType"
 )
 
 type HubUsecase struct {
@@ -77,7 +78,7 @@ func (u *HubUsecase) SaveMesssage(ctx context.Context, message *message.MessageM
 	u.MessageRepo.Save(ctx, message)
 }
 
-func (u *HubUsecase) SendMessage(ctx context.Context, message message.PublishMessage) error {
+func (u *HubUsecase) SendMessage(ctx context.Context, message messageType.PublishMessage) error {
 	jsonMessage, err := json.Marshal(message)
 	if err != nil {
 		return err
