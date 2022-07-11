@@ -18,7 +18,7 @@ type HubUsecaseInterface interface {
 
 	FindUserByFbID(FbId string) (*user.UserModel, error)
 
-	GetFirstQueueUser(client *client.Client) (*client.Client, error)
+	GetFirstQueueUser(client *client.Client) (uint, error)
 	AddUserToQueue(client *client.Client)
 	DeleteuserFromQueue(client *client.Client)
 

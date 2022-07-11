@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/img21326/fb_chat/repo/user"
+	model "github.com/img21326/fb_chat/structure/user"
 )
 
 type JwtConfig struct {
@@ -14,10 +14,10 @@ type JwtConfig struct {
 
 type AuthClaims struct {
 	jwt.StandardClaims
-	User user.UserModel
+	User model.User
 }
 
 type AuthUsecaseInterFace interface {
-	VerifyToken(token string) (user *user.UserModel, err error)
-	GenerateToken(user *user.UserModel) (string, error)
+	VerifyToken(token string) (user *model.User, err error)
+	GenerateToken(user *model.User) (string, error)
 }

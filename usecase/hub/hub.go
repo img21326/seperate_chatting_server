@@ -50,8 +50,8 @@ func (u *HubUsecase) FindUserByFbID(FbId string) (*user.UserModel, error) {
 	return u.UserRepo.FindByFbID(FbId)
 }
 
-func (u *HubUsecase) GetFirstQueueUser(client *client.Client) (*client.Client, error) {
-	return u.WaitRepo.GetFirst(client)
+func (u *HubUsecase) GetFirstQueueUser(client *client.Client) (uint, error) {
+	return u.WaitRepo.Get(client)
 }
 
 func (u *HubUsecase) AddUserToQueue(client *client.Client) {
