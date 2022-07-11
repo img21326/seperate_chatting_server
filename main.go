@@ -40,6 +40,10 @@ func initRedis() *redis.Client { // 實體化redis.Client 並返回實體的位�
 
 func main() {
 
+	if helper.GetEnv("HOST_NAME", "") == "" {
+		panic("Please set env HOST_NAME")
+	}
+
 	db := initDB()
 	redis := initRedis()
 

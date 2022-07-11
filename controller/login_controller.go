@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/img21326/fb_chat/repo/user"
+	"github.com/img21326/fb_chat/structure/user"
 	"github.com/img21326/fb_chat/usecase/auth"
 	"github.com/img21326/fb_chat/usecase/oauth"
 )
@@ -47,7 +47,7 @@ func (c *LoginController) Redirect(ctx *gin.Context) {
 		})
 		return
 	}
-	userModel := &user.UserModel{
+	userModel := &user.User{
 		FbID:   u.ID,
 		Name:   u.Name,
 		Email:  u.Email,
