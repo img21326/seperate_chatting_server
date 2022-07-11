@@ -7,16 +7,16 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/img21326/fb_chat/repo/message"
-	"github.com/img21326/fb_chat/repo/user"
-	"github.com/img21326/fb_chat/ws"
-	"github.com/img21326/fb_chat/ws/messageType"
+	"github.com/img21326/fb_chat/structure/message"
+	pubmessage "github.com/img21326/fb_chat/structure/pub_message"
+	"github.com/img21326/fb_chat/structure/user"
+	"github.com/img21326/fb_chat/structure/ws"
 )
 
 type Client struct {
 	Conn       *websocket.Conn
 	Send       chan []byte
-	User       user.UserModel
+	User       user.User
 	WantToFind string
 	RoomId     uuid.UUID
 	PairId     uint
@@ -36,10 +36,9 @@ const (
 	maxMessageSize = 512
 )
 
-func (c *Client) ReadPump(PublishChan chan<- messageType.PublishMessage, unRegisterChan chan<- *Client, deletePairChan chan<- *Client) {
+func (c *Client) ReadPump(PublishChan chan<- pubmessage.PublishMessage, unRegisterChan chan<- *Client) {
 	defer func() {
 		unRegisterChan <- c
-		deletePairChan <- c
 		c.Conn.Close()
 		close(c.Send)
 	}()
@@ -67,13 +66,13 @@ func (c *Client) ReadPump(PublishChan chan<- messageType.PublishMessage, unRegis
 			continue
 		}
 		if getMessage.Type == "message" {
-			messageModel := message.MessageModel{
+			messageModel := message.Message{
 				RoomId:  c.RoomId,
 				UserId:  c.User.ID,
 				Message: getMessage.Message,
 				Time:    time.Time(getMessage.Time),
 			}
-			publishMessage := messageType.PublishMessage{
+			publishMessage := pubmessage.PublishMessage{
 				Type:     "message",
 				SendFrom: c.User.ID,
 				SendTo:   c.PairId,
@@ -83,7 +82,7 @@ func (c *Client) ReadPump(PublishChan chan<- messageType.PublishMessage, unRegis
 			continue
 		}
 		if getMessage.Type == "leave" {
-			publishMessage := messageType.PublishMessage{
+			publishMessage := pubmessage.PublishMessage{
 				Type:     "leave",
 				SendFrom: c.User.ID,
 				SendTo:   c.PairId,
