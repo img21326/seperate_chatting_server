@@ -32,9 +32,9 @@ func NewFacebookOauth() *FacebookOauth {
 
 func GetFacebookOAuthConfig() *oauth2.Config {
 	return &oauth2.Config{
-		ClientID:     getEnv("Facebook_ClientID", "742754863709260"),
-		ClientSecret: getEnv("Facebook_ClientSecret", "4fd3867f390d4d27b5d573e902c09839"),
-		RedirectURL:  getEnv("Facebook_RedirectURL", "http://localhost:8081/oauth"),
+		ClientID:     GetEnv("Facebook_ClientID", "742754863709260"),
+		ClientSecret: GetEnv("Facebook_ClientSecret", "4fd3867f390d4d27b5d573e902c09839"),
+		RedirectURL:  GetEnv("Facebook_RedirectURL", "http://localhost:8081/oauth"),
 		Endpoint:     facebookOAuth.Endpoint,
 		Scopes:       []string{"email", "user_gender", "user_link", "user_photos", "user_age_range"},
 	}
