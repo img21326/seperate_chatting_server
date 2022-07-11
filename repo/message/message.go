@@ -4,25 +4,20 @@ import (
 	"context"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/img21326/fb_chat/structure/message"
 	"gorm.io/gorm"
 )
 
 type MessageRepo struct {
-	DB    *gorm.DB
-	Redis *redis.Client
+	DB *gorm.DB
 }
 
 func NewMessageRepo(db *gorm.DB, redis *redis.Client) MessageRepoInterface {
 	return &MessageRepo{
-		DB:    db,
-		Redis: redis,
+		DB: db,
 	}
 }
 
-func (r *MessageRepo) Save(ctx context.Context, m *MessageModel) {
+func (r *MessageRepo) Save(ctx context.Context, m *message.Message) {
 	r.DB.WithContext(ctx).Create(&m)
-}
-
-func (r *MessageRepo) Publish(ctx context.Context, message []byte) error {
-	return r.Redis.Publish(ctx, "message", message).Err()
 }

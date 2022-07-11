@@ -1,4 +1,4 @@
-package online
+package localonline
 
 import (
 	"errors"

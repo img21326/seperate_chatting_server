@@ -2,20 +2,10 @@ package message
 
 import (
 	"context"
-	"time"
 
-	"github.com/google/uuid"
+	"github.com/img21326/fb_chat/structure/message"
 )
 
-type MessageModel struct {
-	ID      uint `gorm:"primarykey"`
-	RoomId  uuid.UUID
-	UserId  uint
-	Message string
-	Time    time.Time
-}
-
 type MessageRepoInterface interface {
-	Save(context.Context, *MessageModel)
-	Publish(context.Context, []byte) error
+	Save(context.Context, *message.Message)
 }

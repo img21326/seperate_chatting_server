@@ -1,22 +1,8 @@
 package user
 
-import (
-	"time"
-
-	"gorm.io/gorm"
-)
-
-type UserModel struct {
-	gorm.Model `gorm:"index:idx_name,unique"`
-	FbID       string
-	Name       string
-	Email      string
-	Gender     string
-	FbLink     string
-	Birth      time.Time
-}
+import "github.com/img21326/fb_chat/structure/user"
 
 type UserRepoInterFace interface {
-	Create(u *UserModel) error
-	FindByFbID(FbId string) (*UserModel, error)
+	Create(u *user.User) error
+	FindByFbID(FbId string) (*user.User, error)
 }

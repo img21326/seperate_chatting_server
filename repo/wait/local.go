@@ -1,41 +1,40 @@
 package wait
 
 import (
+	"context"
 	"errors"
 	"sync"
-
-	"github.com/img21326/fb_chat/ws/client"
 )
 
 type WaitRepo struct {
-	ClientMap map[string][]*client.Client
+	ClientMap map[string][]uint
 	lock      *sync.Mutex
 }
 
 func NewLocalWaitRepo() WaitRepoInterface {
 	return &WaitRepo{
-		ClientMap: make(map[string][]*client.Client),
+		ClientMap: make(map[string][]uint),
 		lock:      &sync.Mutex{},
 	}
 }
 
-func (r *WaitRepo) Add(client *client.Client) {
+func (r *WaitRepo) Add(ctx context.Context, queueName string, clientID uint) {
 	r.lock.Lock()
 	defer func() {
 		r.lock.Unlock()
 	}()
-	r.ClientMap[client.User.Gender] = append(r.ClientMap[client.User.Gender], client)
+	r.ClientMap[queueName] = append(r.ClientMap[queueName], clientID)
 }
 
-func (r *WaitRepo) Remove(client *client.Client) {
+func (r *WaitRepo) Remove(ctx context.Context, queueName string, clientID uint) {
 	r.lock.Lock()
 	defer func() {
 		r.lock.Unlock()
 	}()
 	var index int
 	stat := false
-	for i := range r.ClientMap[client.User.Gender] {
-		if r.ClientMap[client.User.Gender][i].User.FbID == client.User.FbID {
+	for i := range r.ClientMap[queueName] {
+		if r.ClientMap[queueName][i] == clientID {
 			index = i
 			stat = true
 			break
@@ -44,36 +43,31 @@ func (r *WaitRepo) Remove(client *client.Client) {
 	if !stat {
 		return
 	}
-	r.ClientMap[client.User.Gender] = append(r.ClientMap[client.User.Gender][:index], r.ClientMap[client.User.Gender][index+1:]...)
+	r.ClientMap[queueName] = append(r.ClientMap[queueName][:index], r.ClientMap[queueName][index+1:]...)
 }
 
-func (r *WaitRepo) GetFirst(client *client.Client) (rclient *client.Client, err error) {
+func (r *WaitRepo) Len(ctx context.Context, queueName string) int {
 	r.lock.Lock()
 	defer func() {
 		r.lock.Unlock()
 	}()
-	if _, isExist := r.ClientMap[client.WantToFind]; !isExist {
+	return len(r.ClientMap[queueName])
+}
+
+func (r *WaitRepo) Pop(ctx context.Context, queueName string) (clientID uint, err error) {
+	r.lock.Lock()
+	defer func() {
+		r.lock.Unlock()
+	}()
+	if _, isExist := r.ClientMap[queueName]; !isExist {
 		err = errors.New("QueueIsEmpty")
 		return
 	}
-	if len(r.ClientMap[client.WantToFind]) < 1 {
+	if len(r.ClientMap[queueName]) < 1 {
 		err = errors.New("QueueIsEmpty")
 		return
 	}
-	stat := false
-	var index int
-	for i := range r.ClientMap[client.WantToFind] {
-		if r.ClientMap[client.WantToFind][i].WantToFind == client.User.Gender {
-			index = i
-			stat = true
-			break
-		}
-	}
-	if !stat {
-		err = errors.New("NotFoundPairUser")
-		return
-	}
-	rclient = r.ClientMap[client.WantToFind][index]
-	r.ClientMap[client.WantToFind] = append(r.ClientMap[client.WantToFind][:index], r.ClientMap[client.WantToFind][index+1:]...)
+	clientID = r.ClientMap[queueName][0]
+	r.ClientMap[queueName] = r.ClientMap[queueName][1:]
 	return
 }
