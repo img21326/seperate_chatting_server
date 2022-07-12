@@ -2,7 +2,6 @@ package localonline
 
 import (
 	"errors"
-	"log"
 	"sync"
 
 	"github.com/img21326/fb_chat/ws/client"
@@ -39,7 +38,6 @@ func (r *OnlineRepo) UnRegister(client *client.Client) {
 }
 
 func (r *OnlineRepo) FindUserByID(userId uint) (*client.Client, error) {
-	log.Printf("local online: %+v", r.ClientMap)
 	if client, ok := r.ClientMap[userId]; ok {
 		return client, nil
 	} else {

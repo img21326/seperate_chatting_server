@@ -24,8 +24,9 @@ func (u *RedisSubUsecase) Subscribe(ctx context.Context, topic string, processMe
 	subscriber := u.PubSubRepo.Sub(ctx, topic)
 	for {
 		msg, err := subscriber.ReceiveMessage(ctx)
+		log.Printf("[Sub] get message: %v", msg)
 		if err != nil {
-			log.Printf("sub message receive error: %v", err)
+			log.Printf("[Sub] sub message receive error: %v", err)
 		}
 		var redisMessage pubmessage.PublishMessage
 
@@ -40,7 +41,7 @@ func (u *RedisSubUsecase) Publish(ctx context.Context, topic string, MessageChan
 	log.Printf("[Pub] start publish %v", topic)
 	for {
 		message := <-MessageChan
-		log.Printf("[Pub] get  message: %v", message)
+		log.Printf("[Pub] send message: %v", message)
 		jsonMessage, err := json.Marshal(message)
 		if err != nil {
 			log.Printf("pub message convert json error: %v", err)

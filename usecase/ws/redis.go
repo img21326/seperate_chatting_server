@@ -75,7 +75,7 @@ func (u *RedisWebsocketUsecase) Run(ctx context.Context) {
 		case client := <-u.UnRegisterClientChan:
 			u.LocalOnlineRepo.UnRegister(client)
 			u.OnlineRepo.UnRegister(ctx, client.User.ID)
-			client.Conn.Close()
+			_ = client.Conn.Close()
 			close(client.Send)
 			log.Printf("[WebsocketUsecase] unRegister user: %v \n", client.User.ID)
 		case receiveMessage := <-u.ReceiveMessageChan:
@@ -87,13 +87,9 @@ func (u *RedisWebsocketUsecase) Run(ctx context.Context) {
 			if err != nil {
 				log.Printf("[WebsocketUsecase] conver receive message err: %v", err)
 			}
-			sendClient, err := u.LocalOnlineRepo.FindUserByID(receiveMessage.SendFrom)
-			if err != nil {
-				log.Printf("[WebsocketUsecase] receive message not found online user")
-				continue
-			}
-			pairClient, errPairClient := u.LocalOnlineRepo.FindUserByID(receiveMessage.SendTo)
+			receiveClient, errReceiveClient := u.LocalOnlineRepo.FindUserByID(receiveMessage.SendTo)
 
+			sendClient, errPairClient := u.LocalOnlineRepo.FindUserByID(receiveMessage.SendFrom)
 			// pairSuccess會發給兩個使用者 所以不用care
 			if receiveMessage.Type == "pairSuccess" {
 				payload := receiveMessage.Payload.(string)
@@ -102,32 +98,36 @@ func (u *RedisWebsocketUsecase) Run(ctx context.Context) {
 					log.Printf("[WebsocketUsecase] pair success payload convert uuid error: %+v", err)
 					continue
 				}
-				sendClient.RoomId = uuid
-				sendClient.PairId = receiveMessage.SendTo
-				sendClient.Send <- jsonMessage
-				log.Printf("[WebsocketUsecase] pair success: %v", sendClient.User.ID)
+				if errReceiveClient == nil {
+					receiveClient.RoomId = uuid
+					receiveClient.PairId = receiveMessage.SendFrom
+					receiveClient.Send <- jsonMessage
+					log.Printf("[WebsocketUsecase] pair success: %v", receiveClient.User.ID)
+				}
 				continue
 			}
 			if receiveMessage.Type == "pairError" || receiveMessage.Type == "message" || receiveMessage.Type == "leave" {
 				// ask message
-				sendClient.Send <- jsonMessage
-
+				if errReceiveClient == nil {
+					receiveClient.Send <- jsonMessage
+				}
 				if errPairClient == nil {
-					pairClient.Send <- jsonMessage
+					sendClient.Send <- jsonMessage
 				}
 			}
 			if receiveMessage.Type == "leave" {
-				log.Printf("[WebsocketUsecase] send leave message by user %v\n", sendClient.User.ID)
-				u.RoomRepo.Close(sendClient.RoomId)
-
-				// 收訊者斷線處理
-				u.refreshRoomUser(sendClient)
-				u.UnRegisterClientChan <- sendClient
+				if errReceiveClient == nil {
+					log.Printf("[WebsocketUsecase] send leave message by user %v\n", receiveMessage.SendFrom)
+					u.RoomRepo.Close(receiveClient.RoomId)
+					// 收訊者斷線處理
+					u.refreshRoomUser(receiveClient)
+					u.UnRegisterClientChan <- receiveClient
+				}
 
 				// 發送者斷線處理
 				if errPairClient == nil {
-					u.refreshRoomUser(pairClient)
-					u.UnRegisterClientChan <- pairClient
+					u.refreshRoomUser(sendClient)
+					u.UnRegisterClientChan <- sendClient
 				}
 
 			}

@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/img21326/fb_chat/helper"
 )
 
 type OnlineRedisRepo struct {
@@ -19,7 +18,7 @@ func NewOnlineRedisRepo(redisPipliner redis.Cmdable) OnlineRepoInterface {
 }
 
 func (r *OnlineRedisRepo) Register(ctx context.Context, clientID uint) {
-	r.Redis.HSet(ctx, "online", clientID, helper.GetEnv("HOST_NAME", ""))
+	r.Redis.HSet(ctx, "online", clientID, "1")
 }
 
 func (r *OnlineRedisRepo) UnRegister(ctx context.Context, clientID uint) {
