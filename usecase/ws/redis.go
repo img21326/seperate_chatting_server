@@ -43,7 +43,7 @@ func NewRedisWebsocketUsecase(
 }
 
 func (u *RedisWebsocketUsecase) refreshRoomUser(client *client.Client) {
-	client.ContinueLoop = false
+	client.CtxCancel()
 	client.RoomId = uuid.Nil
 	client.PairId = 0
 }
@@ -88,8 +88,12 @@ func (u *RedisWebsocketUsecase) Run(ctx context.Context) {
 				log.Printf("[WebsocketUsecase] conver receive message err: %v", err)
 			}
 			receiveClient, errReceiveClient := u.LocalOnlineRepo.FindUserByID(receiveMessage.SendTo)
-
 			sendClient, errPairClient := u.LocalOnlineRepo.FindUserByID(receiveMessage.SendFrom)
+
+			if errReceiveClient != nil && errPairClient != nil {
+				// 這個伺服器皆沒有要處理的使用者
+				continue
+			}
 			// pairSuccess會發給兩個使用者 所以不用care
 			if receiveMessage.Type == "pairSuccess" {
 				payload := receiveMessage.Payload.(string)

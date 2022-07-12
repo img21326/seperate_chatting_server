@@ -88,11 +88,13 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 		log.Printf("ws error: %v", err)
 		return
 	}
+	contextBackground, cancel := context.WithCancel(context.Background())
 	client := client.Client{
-		Conn:         conn,
-		Send:         make(chan []byte, 256),
-		User:         *user,
-		ContinueLoop: true,
+		Conn:      conn,
+		Send:      make(chan []byte, 256),
+		User:      *user,
+		Ctx:       contextBackground,
+		CtxCancel: cancel,
 	}
 	c.WsUsecase.Register(&client)
 	if room != nil {

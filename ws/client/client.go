@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"time"
@@ -14,13 +15,14 @@ import (
 )
 
 type Client struct {
-	Conn         *websocket.Conn
-	ContinueLoop bool
-	Send         chan []byte
-	User         user.User
-	WantToFind   string
-	RoomId       uuid.UUID
-	PairId       uint
+	Conn       *websocket.Conn
+	Ctx        context.Context
+	CtxCancel  context.CancelFunc
+	Send       chan []byte
+	User       user.User
+	WantToFind string
+	RoomId     uuid.UUID
+	PairId     uint
 }
 
 const (
@@ -43,55 +45,59 @@ func (c *Client) ReadPump(PublishChan chan *pubmessage.PublishMessage) {
 	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.Conn.SetPongHandler(func(string) error { c.Conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
-		if !c.ContinueLoop {
-			break
-		}
-		_, messageByte, err := c.Conn.ReadMessage()
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("websocket unexcept error: %v", err)
+		select {
+		case <-c.Ctx.Done():
+			log.Printf("[websocket client] stop listen user: %v", c.User.ID)
+			return
+		default:
+			_, messageByte, err := c.Conn.ReadMessage()
+			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					log.Printf("websocket unexcept error: %v", err)
+				}
+				break
 			}
-			break
-		}
-		var getMessage ws.WebsocketMessage
-		err = json.Unmarshal(messageByte, &getMessage)
-		if err != nil {
-			log.Printf("error decode json: %v", err)
-			continue
-		}
-		log.Printf("[websocket client] get message from user: %v, message: %+v", c.User.ID, getMessage)
+			var getMessage ws.WebsocketMessage
+			err = json.Unmarshal(messageByte, &getMessage)
+			if err != nil {
+				log.Printf("error decode json: %v", err)
+				continue
+			}
+			log.Printf("[websocket client] get message from user: %v, message: %+v", c.User.ID, getMessage)
 
-		// 沒有在房間裡 不做任何動作
-		if c.RoomId == uuid.Nil {
-			continue
-		}
-		if getMessage.Type == "message" {
-			messageModel := message.Message{
-				RoomId:  c.RoomId,
-				UserId:  c.User.ID,
-				Message: getMessage.Message,
-				Time:    time.Time(getMessage.Time),
+			// 沒有在房間裡 不做任何動作
+			if c.RoomId == uuid.Nil {
+				continue
 			}
-			publishMessage := pubmessage.PublishMessage{
-				Type:     "message",
-				SendFrom: c.User.ID,
-				SendTo:   c.PairId,
-				Payload:  messageModel,
+			if getMessage.Type == "message" {
+				messageModel := message.Message{
+					RoomId:  c.RoomId,
+					UserId:  c.User.ID,
+					Message: getMessage.Message,
+					Time:    time.Time(getMessage.Time),
+				}
+				publishMessage := pubmessage.PublishMessage{
+					Type:     "message",
+					SendFrom: c.User.ID,
+					SendTo:   c.PairId,
+					Payload:  messageModel,
+				}
+				PublishChan <- &publishMessage
+				continue
 			}
-			PublishChan <- &publishMessage
-			continue
-		}
-		if getMessage.Type == "leave" {
-			log.Printf("[websocket client] get leave message from user: %v", c.User.ID)
-			publishMessage := pubmessage.PublishMessage{
-				Type:     "leave",
-				SendFrom: c.User.ID,
-				SendTo:   c.PairId,
-				Payload:  c.RoomId,
+			if getMessage.Type == "leave" {
+				log.Printf("[websocket client] get leave message from user: %v", c.User.ID)
+				publishMessage := pubmessage.PublishMessage{
+					Type:     "leave",
+					SendFrom: c.User.ID,
+					SendTo:   c.PairId,
+					Payload:  c.RoomId,
+				}
+				PublishChan <- &publishMessage
+				return
 			}
-			PublishChan <- &publishMessage
-			break
 		}
+
 	}
 }
 
