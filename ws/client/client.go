@@ -36,11 +36,9 @@ const (
 	maxMessageSize = 512
 )
 
-func (c *Client) ReadPump(PublishChan chan<- pubmessage.PublishMessage, unRegisterChan chan<- *Client) {
+func (c *Client) ReadPump(PublishChan chan *pubmessage.PublishMessage, UnregisterFunc func(*Client)) {
 	defer func() {
-		unRegisterChan <- c
-		c.Conn.Close()
-		close(c.Send)
+		UnregisterFunc(c)
 	}()
 	c.Conn.SetReadLimit(maxMessageSize)
 	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
@@ -78,7 +76,7 @@ func (c *Client) ReadPump(PublishChan chan<- pubmessage.PublishMessage, unRegist
 				SendTo:   c.PairId,
 				Payload:  messageModel,
 			}
-			PublishChan <- publishMessage
+			PublishChan <- &publishMessage
 			continue
 		}
 		if getMessage.Type == "leave" {
@@ -88,10 +86,9 @@ func (c *Client) ReadPump(PublishChan chan<- pubmessage.PublishMessage, unRegist
 				SendTo:   c.PairId,
 				Payload:  c.RoomId,
 			}
-			PublishChan <- publishMessage
+			PublishChan <- &publishMessage
 			c.RoomId = uuid.Nil
 			c.PairId = 0
-			c.Conn.Close()
 			break
 		}
 	}

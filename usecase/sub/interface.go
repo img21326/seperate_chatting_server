@@ -7,6 +7,6 @@ import (
 )
 
 type SubMessageUsecaseInterface interface {
-	Subscribe(ctx context.Context, topic string, MessageChan chan<- *pubmessage.PublishMessage)
+	Subscribe(ctx context.Context, topic string, processMessage func(*pubmessage.PublishMessage))
 	Publish(ctx context.Context, topic string, MessageChan <-chan *pubmessage.PublishMessage)
 }

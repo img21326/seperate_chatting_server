@@ -1,6 +1,7 @@
 package room
 
 import (
+	"context"
 	"errors"
 
 	"github.com/google/uuid"
@@ -27,8 +28,8 @@ func (repo *RoomRepo) Close(roomId uuid.UUID) error {
 	return repo.DB.Model(&room.Room{}).Where("id = ?", roomId).Update("close", true).Error
 }
 
-func (repo *RoomRepo) FindByUserId(userId uint) (room *room.Room, err error) {
-	if err := repo.DB.Order("`rooms`.`created_at` desc").Where("user_id1 = ?", userId).Or("user_id2 = ?", userId).First(&room).Error; err != nil {
+func (repo *RoomRepo) FindByUserId(ctx context.Context, userId uint) (room *room.Room, err error) {
+	if err := repo.DB.WithContext(ctx).Order("`rooms`.`created_at` desc").Where("user_id1 = ?", userId).Or("user_id2 = ?", userId).First(&room).Error; err != nil {
 		return nil, err
 	}
 	if room.Close {

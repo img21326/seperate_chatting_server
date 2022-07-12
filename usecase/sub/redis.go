@@ -19,7 +19,7 @@ func NewRedisSubUsecase(pubSubRepo repo.PubSubRepoInterface) SubMessageUsecaseIn
 	}
 }
 
-func (u *RedisSubUsecase) Subscribe(ctx context.Context, topic string, MessageChan chan<- *pubmessage.PublishMessage) {
+func (u *RedisSubUsecase) Subscribe(ctx context.Context, topic string, processMessage func(*pubmessage.PublishMessage)) {
 	log.Printf("[Sub] start subscribe %v", topic)
 	subscriber := u.PubSubRepo.Sub(ctx, topic)
 	for {
@@ -32,7 +32,7 @@ func (u *RedisSubUsecase) Subscribe(ctx context.Context, topic string, MessageCh
 		if err := json.Unmarshal([]byte(msg.Payload), &redisMessage); err != nil {
 			log.Printf("pubsub message json load error: %v", err)
 		}
-		MessageChan <- &redisMessage
+		processMessage(&redisMessage)
 	}
 }
 

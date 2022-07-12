@@ -1,6 +1,8 @@
 package room
 
 import (
+	"context"
+
 	"github.com/google/uuid"
 	"github.com/img21326/fb_chat/structure/room"
 )
@@ -8,5 +10,5 @@ import (
 type RoomRepoInterface interface {
 	Create(room *room.Room) error
 	Close(roomId uuid.UUID) error
-	FindByUserId(userId uint) (*room.Room, error)
+	FindByUserId(ctx context.Context, userId uint) (*room.Room, error)
 }

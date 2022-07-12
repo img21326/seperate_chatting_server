@@ -3,7 +3,6 @@ package message
 import (
 	"context"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/img21326/fb_chat/structure/message"
 	"gorm.io/gorm"
 )
@@ -12,7 +11,7 @@ type MessageRepo struct {
 	DB *gorm.DB
 }
 
-func NewMessageRepo(db *gorm.DB, redis *redis.Client) MessageRepoInterface {
+func NewMessageRepo(db *gorm.DB) MessageRepoInterface {
 	return &MessageRepo{
 		DB: db,
 	}

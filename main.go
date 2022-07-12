@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -9,14 +11,21 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/img21326/fb_chat/controller"
 	"github.com/img21326/fb_chat/helper"
-	"github.com/img21326/fb_chat/repo/message"
-	"github.com/img21326/fb_chat/repo/online"
-	"github.com/img21326/fb_chat/repo/room"
-	"github.com/img21326/fb_chat/repo/user"
-	"github.com/img21326/fb_chat/repo/wait"
+	RepoLocal "github.com/img21326/fb_chat/repo/local_online"
+	RepoMessage "github.com/img21326/fb_chat/repo/message"
+	RepoOnline "github.com/img21326/fb_chat/repo/online"
+	RepoPubSub "github.com/img21326/fb_chat/repo/pubsub"
+	RepoRoom "github.com/img21326/fb_chat/repo/room"
+	RepoUser "github.com/img21326/fb_chat/repo/user"
+	RepoWait "github.com/img21326/fb_chat/repo/wait"
+	ModelMessage "github.com/img21326/fb_chat/structure/message"
+	ModelRoom "github.com/img21326/fb_chat/structure/room"
+	ModelUser "github.com/img21326/fb_chat/structure/user"
 	"github.com/img21326/fb_chat/usecase/auth"
-	"github.com/img21326/fb_chat/usecase/hub"
 	"github.com/img21326/fb_chat/usecase/oauth"
+	"github.com/img21326/fb_chat/usecase/pair"
+	"github.com/img21326/fb_chat/usecase/sub"
+	"github.com/img21326/fb_chat/usecase/ws"
 	"gorm.io/gorm"
 )
 
@@ -25,53 +34,67 @@ func initDB() *gorm.DB {
 	if err != nil {
 		log.Panicf("Open db error: %v", err)
 	}
-	db.AutoMigrate(&user.UserModel{}, &message.MessageModel{}, &room.Room{})
+	db.AutoMigrate(&ModelUser.User{}, &ModelMessage.Message{}, &ModelRoom.Room{})
 	return db
 }
 
-func initRedis() *redis.Client { // 實體化redis.Client 並返回實體的位址
+func initRedis() *redis.Client {
 	client := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "", // no password set
-		DB:       0,  // use default DB
+		Addr:     "139.162.125.28:6379",
+		Password: "",
+		DB:       5,
 	})
 	return client
 }
 
+func initRedisRepo(db *gorm.DB, redis *redis.Client) (messageRepo RepoMessage.MessageRepoInterface,
+	localOnlineRepo RepoLocal.OnlineRepoInterface, onlineRepo RepoOnline.OnlineRepoInterface, roomRepo RepoRoom.RoomRepoInterface,
+	userRepo RepoUser.UserRepoInterFace, waitRepo RepoWait.WaitRepoInterface, pubSubRepo RepoPubSub.PubSubRepoInterface) {
+	messageRepo = RepoMessage.NewMessageRepo(db)
+	localOnlineRepo = RepoLocal.NewOnlineRepo()
+	onlineRepo = RepoOnline.NewOnlineRedisRepo(redis)
+	roomRepo = RepoRoom.NewRoomRepo(db)
+	userRepo = RepoUser.NewUserRepo(db)
+	waitRepo = RepoWait.NewRedisWaitRepo(redis)
+	pubSubRepo = RepoPubSub.NewPubSubRepo(redis)
+	return
+}
+
 func main() {
 
-	if helper.GetEnv("HOST_NAME", "") == "" {
-		panic("Please set env HOST_NAME")
-	}
+	// if helper.GetEnv("HOST_NAME", "") == "" {
+	// 	panic("Please set env HOST_NAME")
+	// }
 
 	db := initDB()
 	redis := initRedis()
 
-	messageRepo := message.NewMessageRepo(db, redis)
-	onlineRepo := online.NewOnlineRepo()
-	roomRepo := room.NewRoomRepo(db)
-	userRepo := user.NewUserRepo(db)
-	waitRepo := wait.NewLocalWaitRepo()
+	_, localOnlineRepo, onlineRepo, roomRepo, userRepo, waitRepo, pubSubRepo := initRedisRepo(db, redis)
 
-	server := gin.Default()
-
+	//For AuthUsecase
 	FacebookOauth := helper.NewFacebookOauth()
 	FacebookUsecase := oauth.NewFacebookOauthUsecase(FacebookOauth)
-
-	Hubsecase := hub.NewHubUsecase(userRepo, messageRepo, onlineRepo, roomRepo, waitRepo)
 
 	jwtConfig := auth.JwtConfig{
 		Key:            []byte("secret168"),
 		ExpireDuration: time.Hour * 24,
 	}
 	AuthUsecase := auth.NewAuthUsecase(jwtConfig, userRepo)
-	// jwtMiddleware := jwt.NewJWTValidMiddleware(AuthUsecase)
 
+	// For Websocket
+	wsUsecase := ws.NewRedisWebsocketUsecase(localOnlineRepo, onlineRepo, roomRepo)
+	subUsecase := sub.NewRedisSubUsecase(pubSubRepo)
+	pairUsecase := pair.NewRedisSubUsecase(waitRepo, onlineRepo, roomRepo)
+
+	// jwtMiddleware := jwt.NewJWTValidMiddleware(AuthUsecase)
 	// jwtRoute := server.Group("/auth")
 	// jwtRoute.Use(jwtMiddleware.ValidHeaderToken)
 
+	server := gin.Default()
 	controller.NewLoginController(server, FacebookUsecase, AuthUsecase)
-	controller.NewWebsocketController(server, Hubsecase, AuthUsecase, redis)
+	controller.NewWebsocketController(server, wsUsecase, subUsecase, pairUsecase)
 
-	server.Run(":8081")
+	port := os.Args[1]
+
+	server.Run(fmt.Sprintf(":%v", port))
 }

@@ -14,7 +14,7 @@ import (
 )
 
 type RedisPairUsecase struct {
-	InsertClientChan <-chan *client.Client
+	InsertClientChan chan *client.Client
 	PairSuccessChan  chan *room.Room
 	PubMessageChan   chan<- *pubmessage.PublishMessage
 	WaitRepo         wait.WaitRepoInterface
@@ -22,17 +22,18 @@ type RedisPairUsecase struct {
 	RoomRepo         RoomRepo.RoomRepoInterface
 }
 
-func NewRedisSubUsecase(insertClientChan <-chan *client.Client,
-	pubMessageChan chan<- *pubmessage.PublishMessage,
+func NewRedisSubUsecase(
+	// insertClientChan <-chan *client.Client,
+	// pubMessageChan chan<- *pubmessage.PublishMessage,
 	waitRepo wait.WaitRepoInterface, onlineRepo online.OnlineRepoInterface, roomRepo RoomRepo.RoomRepoInterface,
 ) PairUsecaseInterface {
 	return &RedisPairUsecase{
-		InsertClientChan: insertClientChan,
+		InsertClientChan: make(chan *client.Client, 1024),
 		PairSuccessChan:  make(chan *room.Room, 1024),
-		PubMessageChan:   pubMessageChan,
-		WaitRepo:         waitRepo,
-		OnlineRepo:       onlineRepo,
-		RoomRepo:         roomRepo,
+		// PubMessageChan:   pubMessageChan,
+		WaitRepo:   waitRepo,
+		OnlineRepo: onlineRepo,
+		RoomRepo:   roomRepo,
 	}
 }
 
@@ -44,8 +45,19 @@ func (u *RedisPairUsecase) getPairQueueName(client *client.Client) string {
 	return fmt.Sprintf("%v_%v", client.WantToFind, client.User.Gender)
 }
 
+func (u *RedisPairUsecase) SetMessageChan(messageChan chan *pubmessage.PublishMessage) {
+	u.PubMessageChan = messageChan
+}
+
+func (u *RedisPairUsecase) Add(client *client.Client) {
+	u.InsertClientChan <- client
+}
+
 func (u *RedisPairUsecase) Run(ctx context.Context) {
 	log.Printf("[RedisPairUsecase] start")
+	if u.PubMessageChan == nil {
+		log.Printf("[RedisPairUsecase] not set message chan")
+	}
 	for {
 		select {
 		case client := <-u.InsertClientChan:
