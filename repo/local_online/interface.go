@@ -7,5 +7,5 @@ import (
 type OnlineRepoInterface interface {
 	Register(client *client.Client)
 	UnRegister(client *client.Client)
-	FindUserByFbID(userId uint) (*client.Client, error)
+	FindUserByID(userId uint) (*client.Client, error)
 }

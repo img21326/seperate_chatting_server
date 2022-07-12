@@ -43,11 +43,13 @@ func NewWebsocketController(e *gin.Engine,
 	pairUsecase.SetMessageChan(messageChan)
 
 	controller := WebsocketController{
-		WSUpgrader:  upgrader,
-		WsUsecase:   wsUsecase,
-		SubUscase:   subUsecase,
-		PairUsecase: pairUsecase,
+		WSUpgrader:     upgrader,
+		WsUsecase:      wsUsecase,
+		SubUscase:      subUsecase,
+		PairUsecase:    pairUsecase,
+		PubMessageChan: messageChan,
 	}
+
 	ctx := context.Background()
 	go controller.SubUscase.Subscribe(ctx, "message", controller.WsUsecase.ReceiveMessage)
 	go controller.SubUscase.Publish(ctx, "message", messageChan)
@@ -87,9 +89,10 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 		return
 	}
 	client := client.Client{
-		Conn: conn,
-		Send: make(chan []byte, 256),
-		User: *user,
+		Conn:         conn,
+		Send:         make(chan []byte, 256),
+		User:         *user,
+		ContinueLoop: true,
 	}
 	c.WsUsecase.Register(&client)
 	if room != nil {
@@ -114,7 +117,7 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 		client.Send <- []byte("{'type': 'paring'}")
 	}
 
-	go client.ReadPump(c.PubMessageChan, c.WsUsecase.UnRegister)
+	go client.ReadPump(c.PubMessageChan)
 	go client.WritePump()
 
 }

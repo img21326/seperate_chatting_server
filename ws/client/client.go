@@ -14,12 +14,13 @@ import (
 )
 
 type Client struct {
-	Conn       *websocket.Conn
-	Send       chan []byte
-	User       user.User
-	WantToFind string
-	RoomId     uuid.UUID
-	PairId     uint
+	Conn         *websocket.Conn
+	ContinueLoop bool
+	Send         chan []byte
+	User         user.User
+	WantToFind   string
+	RoomId       uuid.UUID
+	PairId       uint
 }
 
 const (
@@ -36,14 +37,15 @@ const (
 	maxMessageSize = 512
 )
 
-func (c *Client) ReadPump(PublishChan chan *pubmessage.PublishMessage, UnregisterFunc func(*Client)) {
-	defer func() {
-		UnregisterFunc(c)
-	}()
+func (c *Client) ReadPump(PublishChan chan *pubmessage.PublishMessage) {
+
 	c.Conn.SetReadLimit(maxMessageSize)
 	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.Conn.SetPongHandler(func(string) error { c.Conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
+		if !c.ContinueLoop {
+			break
+		}
 		_, messageByte, err := c.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
@@ -80,6 +82,7 @@ func (c *Client) ReadPump(PublishChan chan *pubmessage.PublishMessage, Unregiste
 			continue
 		}
 		if getMessage.Type == "leave" {
+			log.Printf("[websocket client] get leave message from user: %v", c.User.ID)
 			publishMessage := pubmessage.PublishMessage{
 				Type:     "leave",
 				SendFrom: c.User.ID,
@@ -87,8 +90,6 @@ func (c *Client) ReadPump(PublishChan chan *pubmessage.PublishMessage, Unregiste
 				Payload:  c.RoomId,
 			}
 			PublishChan <- &publishMessage
-			c.RoomId = uuid.Nil
-			c.PairId = 0
 			break
 		}
 	}

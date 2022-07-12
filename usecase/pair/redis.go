@@ -97,27 +97,27 @@ func (u *RedisPairUsecase) Run(ctx context.Context) {
 				log.Printf("create chat room err: %v", err)
 				m1 = &pubmessage.PublishMessage{
 					Type:     "pairError",
-					SendFrom: 0,
-					SendTo:   room.UserId1,
+					SendFrom: room.UserId1,
+					SendTo:   room.UserId2,
 					Payload:  "create room error",
 				}
 				m2 = &pubmessage.PublishMessage{
 					Type:     "pairError",
-					SendFrom: 0,
+					SendFrom: room.UserId1,
 					SendTo:   room.UserId2,
 					Payload:  "create room error",
 				}
 			} else {
 				m1 = &pubmessage.PublishMessage{
 					Type:     "pairSuccess",
-					SendFrom: 0,
-					SendTo:   room.UserId1,
+					SendFrom: room.UserId1,
+					SendTo:   room.UserId2,
 					Payload:  room.ID,
 				}
 				m2 = &pubmessage.PublishMessage{
 					Type:     "pairSuccess",
-					SendFrom: 0,
-					SendTo:   room.UserId2,
+					SendFrom: room.UserId2,
+					SendTo:   room.UserId1,
 					Payload:  room.ID,
 				}
 			}
