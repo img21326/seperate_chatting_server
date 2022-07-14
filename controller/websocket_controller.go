@@ -6,11 +6,14 @@ import (
 	"net/http"
 	"strconv"
 
+	messageStruct "github.com/img21326/fb_chat/structure/message"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/img21326/fb_chat/helper"
 	pubmessage "github.com/img21326/fb_chat/structure/pub_message"
 	"github.com/img21326/fb_chat/structure/user"
+	"github.com/img21326/fb_chat/usecase/message"
 	"github.com/img21326/fb_chat/usecase/pair"
 	"github.com/img21326/fb_chat/usecase/sub"
 	"github.com/img21326/fb_chat/usecase/ws"
@@ -23,6 +26,7 @@ type WebsocketController struct {
 	WsUsecase      ws.WebsocketUsecaseInterface
 	SubUscase      sub.SubMessageUsecaseInterface
 	PairUsecase    pair.PairUsecaseInterface
+	MessageUsecase message.MessageUsecaseInterface
 	PubMessageChan chan *pubmessage.PublishMessage
 }
 
@@ -30,6 +34,7 @@ func NewWebsocketController(e *gin.Engine,
 	wsUsecase ws.WebsocketUsecaseInterface,
 	subUsecase sub.SubMessageUsecaseInterface,
 	pairUsecase pair.PairUsecaseInterface,
+	messageUsecase message.MessageUsecaseInterface,
 ) {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -39,22 +44,28 @@ func NewWebsocketController(e *gin.Engine,
 		},
 	}
 
-	messageChan := make(chan *pubmessage.PublishMessage, 1024)
-	pairUsecase.SetMessageChan(messageChan)
+	publishMessageChan := make(chan *pubmessage.PublishMessage, 1024)
+	pairUsecase.SetMessageChan(publishMessageChan)
+
+	saveMessageChan := make(chan *messageStruct.Message, 1024)
+	messageUsecase.SetMessageChan(saveMessageChan)
+	wsUsecase.SetSaveMessageChan(saveMessageChan)
 
 	controller := WebsocketController{
 		WSUpgrader:     upgrader,
 		WsUsecase:      wsUsecase,
 		SubUscase:      subUsecase,
 		PairUsecase:    pairUsecase,
-		PubMessageChan: messageChan,
+		MessageUsecase: messageUsecase,
+		PubMessageChan: publishMessageChan,
 	}
 
 	ctx := context.Background()
 	go controller.SubUscase.Subscribe(ctx, "message", controller.WsUsecase.ReceiveMessage)
-	go controller.SubUscase.Publish(ctx, "message", messageChan)
+	go controller.SubUscase.Publish(ctx, "message", publishMessageChan)
 	go controller.WsUsecase.Run(ctx)
 	go controller.PairUsecase.Run(ctx)
+	go controller.MessageUsecase.Run(ctx)
 
 	e.GET("/ws", controller.WS)
 }

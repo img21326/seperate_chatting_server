@@ -9,6 +9,7 @@ import (
 	localonline "github.com/img21326/fb_chat/repo/local_online"
 	"github.com/img21326/fb_chat/repo/online"
 	RepoRoom "github.com/img21326/fb_chat/repo/room"
+	"github.com/img21326/fb_chat/structure/message"
 	pubmessage "github.com/img21326/fb_chat/structure/pub_message"
 	"github.com/img21326/fb_chat/structure/room"
 	"github.com/img21326/fb_chat/ws/client"
@@ -18,6 +19,7 @@ type RedisWebsocketUsecase struct {
 	RegisterClientChan   chan *client.Client
 	UnRegisterClientChan chan *client.Client
 	ReceiveMessageChan   chan *pubmessage.PublishMessage
+	SaveMessageChan      chan *message.Message
 	LocalOnlineRepo      localonline.OnlineRepoInterface
 	OnlineRepo           online.OnlineRepoInterface
 	RoomRepo             RepoRoom.RoomRepoInterface
@@ -40,6 +42,10 @@ func NewRedisWebsocketUsecase(
 		OnlineRepo:           onlineRepo,
 		RoomRepo:             roomRepo,
 	}
+}
+
+func (u *RedisWebsocketUsecase) SetSaveMessageChan(c chan *message.Message) {
+	u.SaveMessageChan = c
 }
 
 func (u *RedisWebsocketUsecase) refreshRoomUser(client *client.Client) {
@@ -88,9 +94,9 @@ func (u *RedisWebsocketUsecase) Run(ctx context.Context) {
 				log.Printf("[WebsocketUsecase] conver receive message err: %v", err)
 			}
 			receiveClient, errReceiveClient := u.LocalOnlineRepo.FindUserByID(receiveMessage.SendTo)
-			sendClient, errPairClient := u.LocalOnlineRepo.FindUserByID(receiveMessage.SendFrom)
+			sendClient, errSendClient := u.LocalOnlineRepo.FindUserByID(receiveMessage.SendFrom)
 
-			if errReceiveClient != nil && errPairClient != nil {
+			if errReceiveClient != nil && errSendClient != nil {
 				// 這個伺服器皆沒有要處理的使用者
 				continue
 			}
@@ -111,25 +117,37 @@ func (u *RedisWebsocketUsecase) Run(ctx context.Context) {
 				continue
 			}
 			if receiveMessage.Type == "pairError" || receiveMessage.Type == "message" || receiveMessage.Type == "leave" {
-				// ack message
 				if errReceiveClient == nil {
 					receiveClient.Send <- jsonMessage
 				}
-				if errPairClient == nil {
+				// ack message
+				if errSendClient == nil {
 					sendClient.Send <- jsonMessage
+					if receiveMessage.Type == "message" {
+						receiveM, err := json.Marshal(receiveMessage.Payload)
+						if err != nil {
+							log.Printf("[WebsocketUsecase] save message convert to json err: %v", err)
+						}
+						var M message.Message
+						err = json.Unmarshal(receiveM, &M)
+						if err != nil {
+							log.Printf("[WebsocketUsecase] save message convert to struct err: %v", err)
+						}
+						u.SaveMessageChan <- &M
+					}
 				}
 			}
 			if receiveMessage.Type == "leave" {
 				if errReceiveClient == nil {
 					log.Printf("[WebsocketUsecase] send leave message by user %v\n", receiveMessage.SendFrom)
 					u.RoomRepo.Close(receiveClient.RoomId)
-					// 收訊者斷線處理
+					// 收訊者離開處理
 					u.refreshRoomUser(receiveClient)
 					u.UnRegisterClientChan <- receiveClient
 				}
 
-				// 發送者斷線處理
-				if errPairClient == nil {
+				// 發送者離開處理
+				if errSendClient == nil {
 					u.refreshRoomUser(sendClient)
 					u.UnRegisterClientChan <- sendClient
 				}

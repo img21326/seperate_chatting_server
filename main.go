@@ -22,6 +22,7 @@ import (
 	ModelRoom "github.com/img21326/fb_chat/structure/room"
 	ModelUser "github.com/img21326/fb_chat/structure/user"
 	"github.com/img21326/fb_chat/usecase/auth"
+	"github.com/img21326/fb_chat/usecase/message"
 	"github.com/img21326/fb_chat/usecase/oauth"
 	"github.com/img21326/fb_chat/usecase/pair"
 	"github.com/img21326/fb_chat/usecase/sub"
@@ -69,7 +70,7 @@ func main() {
 	db := initDB()
 	redis := initRedis()
 
-	_, localOnlineRepo, onlineRepo, roomRepo, userRepo, waitRepo, pubSubRepo := initRedisRepo(db, redis)
+	messageRepo, localOnlineRepo, onlineRepo, roomRepo, userRepo, waitRepo, pubSubRepo := initRedisRepo(db, redis)
 
 	//For AuthUsecase
 	FacebookOauth := helper.NewFacebookOauth()
@@ -85,6 +86,7 @@ func main() {
 	wsUsecase := ws.NewRedisWebsocketUsecase(localOnlineRepo, onlineRepo, roomRepo)
 	subUsecase := sub.NewRedisSubUsecase(pubSubRepo)
 	pairUsecase := pair.NewRedisSubUsecase(waitRepo, onlineRepo, roomRepo)
+	messageUsecase := message.NewMessageUsecase(messageRepo)
 
 	// jwtMiddleware := jwt.NewJWTValidMiddleware(AuthUsecase)
 	// jwtRoute := server.Group("/auth")
@@ -92,7 +94,7 @@ func main() {
 
 	server := gin.Default()
 	controller.NewLoginController(server, FacebookUsecase, AuthUsecase)
-	controller.NewWebsocketController(server, wsUsecase, subUsecase, pairUsecase)
+	controller.NewWebsocketController(server, wsUsecase, subUsecase, pairUsecase, messageUsecase)
 
 	port := os.Args[1]
 

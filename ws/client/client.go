@@ -55,7 +55,7 @@ func (c *Client) ReadPump(PublishChan chan *pubmessage.PublishMessage) {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 					log.Printf("websocket unexcept error: %v", err)
 				}
-				break
+				c.CtxCancel()
 			}
 			var getMessage ws.WebsocketMessage
 			err = json.Unmarshal(messageByte, &getMessage)
@@ -74,7 +74,7 @@ func (c *Client) ReadPump(PublishChan chan *pubmessage.PublishMessage) {
 					RoomId:  c.RoomId,
 					UserId:  c.User.ID,
 					Message: getMessage.Message,
-					Time:    time.Time(getMessage.Time),
+					Time:    getMessage.Time.Time,
 				}
 				publishMessage := pubmessage.PublishMessage{
 					Type:     "message",
