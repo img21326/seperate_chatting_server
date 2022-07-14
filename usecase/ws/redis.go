@@ -111,7 +111,7 @@ func (u *RedisWebsocketUsecase) Run(ctx context.Context) {
 				continue
 			}
 			if receiveMessage.Type == "pairError" || receiveMessage.Type == "message" || receiveMessage.Type == "leave" {
-				// ask message
+				// ack message
 				if errReceiveClient == nil {
 					receiveClient.Send <- jsonMessage
 				}
