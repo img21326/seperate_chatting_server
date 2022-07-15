@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/img21326/fb_chat/mock"
-	"github.com/img21326/fb_chat/repo/user"
+	"github.com/img21326/fb_chat/structure/user"
 	"github.com/img21326/fb_chat/usecase/auth"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,7 +15,7 @@ func TestGenerateToken(t *testing.T) {
 	c := gomock.NewController(t)
 	userRepo := mock.NewMockUserRepoInterFace(c)
 
-	user := user.UserModel{
+	user := user.User{
 		FbID:  "abcd",
 		Email: "abc@gmail.com",
 		Name:  "Liao",
@@ -41,7 +41,7 @@ func TestGetUserByToken(t *testing.T) {
 	c := gomock.NewController(t)
 	userRepo := mock.NewMockUserRepoInterFace(c)
 
-	user := user.UserModel{
+	user := user.User{
 		FbID:  "abcd",
 		Email: "abc@gmail.com",
 		Name:  "Liao",
