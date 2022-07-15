@@ -11,6 +11,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/img21326/fb_chat/controller"
 	"github.com/img21326/fb_chat/helper"
+	"github.com/img21326/fb_chat/middleware/jwt"
 	RepoLocal "github.com/img21326/fb_chat/repo/local_online"
 	RepoMessage "github.com/img21326/fb_chat/repo/message"
 	RepoOnline "github.com/img21326/fb_chat/repo/online"
@@ -86,15 +87,17 @@ func main() {
 	wsUsecase := ws.NewRedisWebsocketUsecase(localOnlineRepo, onlineRepo, roomRepo)
 	subUsecase := sub.NewRedisSubUsecase(pubSubRepo)
 	pairUsecase := pair.NewRedisSubUsecase(waitRepo, onlineRepo, roomRepo)
-	messageUsecase := message.NewMessageUsecase(messageRepo)
-
-	// jwtMiddleware := jwt.NewJWTValidMiddleware(AuthUsecase)
-	// jwtRoute := server.Group("/auth")
-	// jwtRoute.Use(jwtMiddleware.ValidHeaderToken)
+	messageUsecase := message.NewMessageUsecase(messageRepo, roomRepo)
 
 	server := gin.Default()
+
+	jwtMiddleware := jwt.NewJWTValidMiddleware(AuthUsecase)
+	jwtRoute := server.Group("/auth")
+	jwtRoute.Use(jwtMiddleware.ValidHeaderToken)
+
 	controller.NewLoginController(server, FacebookUsecase, AuthUsecase)
 	controller.NewWebsocketController(server, wsUsecase, subUsecase, pairUsecase, messageUsecase)
+	controller.NewMessageController(jwtRoute, messageUsecase)
 
 	port := os.Args[1]
 

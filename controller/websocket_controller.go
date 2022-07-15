@@ -30,7 +30,7 @@ type WebsocketController struct {
 	PubMessageChan chan *pubmessage.PublishMessage
 }
 
-func NewWebsocketController(e *gin.Engine,
+func NewWebsocketController(e gin.IRoutes,
 	wsUsecase ws.WebsocketUsecaseInterface,
 	subUsecase sub.SubMessageUsecaseInterface,
 	pairUsecase pair.PairUsecaseInterface,

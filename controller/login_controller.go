@@ -15,7 +15,7 @@ type LoginController struct {
 	AuthUsecase  auth.AuthUsecaseInterFace
 }
 
-func NewLoginController(e *gin.Engine, oauthUsecase oauth.OauthUsecaseInterFace, authUsecase auth.AuthUsecaseInterFace) {
+func NewLoginController(e gin.IRoutes, oauthUsecase oauth.OauthUsecaseInterFace, authUsecase auth.AuthUsecaseInterFace) {
 	controller := &LoginController{
 		OauthUsecase: oauthUsecase,
 		AuthUsecase:  authUsecase,
