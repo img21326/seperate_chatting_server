@@ -1,6 +1,8 @@
 package user
 
 import (
+	"context"
+
 	"github.com/img21326/fb_chat/structure/user"
 	"gorm.io/gorm"
 )
@@ -15,11 +17,11 @@ func NewUserRepo(db *gorm.DB) UserRepoInterFace {
 	}
 }
 
-func (repo *UserRepo) Create(u *user.User) error {
+func (repo *UserRepo) Create(ctx context.Context, u *user.User) error {
 	return repo.DB.Create(&u).Error
 }
 
-func (repo *UserRepo) FindByFbID(FbId string) (u *user.User, err error) {
+func (repo *UserRepo) FindByFbID(ctx context.Context, FbId string) (u *user.User, err error) {
 	err = repo.DB.Where("fb_id = ?", FbId).First(&u).Error
 	return
 }
