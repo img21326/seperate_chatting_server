@@ -32,7 +32,7 @@ func (r *WaitRedisRepo) Len(ctx context.Context, queueName string) int {
 func (r *WaitRedisRepo) Pop(ctx context.Context, queueName string) (clientID uint, err error) {
 	ret := r.Redis.LPop(ctx, queueName)
 	if ret.Err() != nil {
-		log.Printf("[waitRepo] redis get err: %v", ret.Err().Error())
+		log.Printf("[waitRepo] redis get err: %+v", ret.Err())
 		return 0, ret.Err()
 	}
 	clientID64, err := ret.Uint64()

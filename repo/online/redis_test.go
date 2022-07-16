@@ -9,15 +9,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var redisServer *miniredis.Miniredis
-
 func mockRedis() *miniredis.Miniredis {
 	s, err := miniredis.Run()
-
 	if err != nil {
 		panic(err)
 	}
-
 	return s
 }
 
@@ -27,10 +23,6 @@ func getRedis() *redis.Client {
 		Addr: redisServer.Addr(),
 	})
 	return redisClient
-}
-
-func teardown() {
-	redisServer.Close()
 }
 
 func TestRegister(t *testing.T) {
