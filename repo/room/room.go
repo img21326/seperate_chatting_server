@@ -2,9 +2,9 @@ package room
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
+	errStruct "github.com/img21326/fb_chat/structure/error"
 	"github.com/img21326/fb_chat/structure/room"
 	"gorm.io/gorm"
 )
@@ -19,13 +19,13 @@ func NewRoomRepo(db *gorm.DB) RoomRepoInterface {
 	}
 }
 
-func (repo *RoomRepo) Create(room *room.Room) (err error) {
+func (repo *RoomRepo) Create(ctx context.Context, room *room.Room) (err error) {
 	room.ID = uuid.New()
-	return repo.DB.Create(room).Error
+	return repo.DB.WithContext(ctx).Create(room).Error
 }
 
-func (repo *RoomRepo) Close(roomId uuid.UUID) error {
-	return repo.DB.Model(&room.Room{}).Where("id = ?", roomId).Update("close", true).Error
+func (repo *RoomRepo) Close(ctx context.Context, roomId uuid.UUID) error {
+	return repo.DB.WithContext(ctx).Model(&room.Room{}).Where("id = ?", roomId).Update("close", true).Error
 }
 
 func (repo *RoomRepo) FindByUserId(ctx context.Context, userId uint) (room *room.Room, err error) {
@@ -33,7 +33,7 @@ func (repo *RoomRepo) FindByUserId(ctx context.Context, userId uint) (room *room
 		return nil, err
 	}
 	if room.Close {
-		return nil, errors.New("RoomIsClosed")
+		return nil, errStruct.RoomIsClose
 	}
 	return
 }

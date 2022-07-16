@@ -8,7 +8,7 @@ import (
 )
 
 type RoomRepoInterface interface {
-	Create(room *room.Room) error
-	Close(roomId uuid.UUID) error
+	Create(ctx context.Context, room *room.Room) error
+	Close(ctx context.Context, roomId uuid.UUID) error
 	FindByUserId(ctx context.Context, userId uint) (*room.Room, error)
 }
