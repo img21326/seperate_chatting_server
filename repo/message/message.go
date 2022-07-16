@@ -30,11 +30,11 @@ func (r *MessageRepo) GetByID(ctx context.Context, ID uint) (*message.Message, e
 }
 
 func (r *MessageRepo) LastsByRoomID(ctx context.Context, roomID uuid.UUID, c int) (messages []*message.Message, err error) {
-	err = r.DB.WithContext(ctx).Where("room_id = ?", roomID).Order("created_at desc").Limit(c).Find(&messages).Error
+	err = r.DB.WithContext(ctx).Where("room_id = ?", roomID).Order("time desc").Limit(c).Find(&messages).Error
 	return
 }
 
 func (r *MessageRepo) LastsByTime(ctx context.Context, roomID uuid.UUID, t time.Time, c int) (messages []*message.Message, err error) {
-	err = r.DB.WithContext(ctx).Where("created_at < ? and room_id = ?", t, roomID).Order("created_at desc").Limit(c).Find(&messages).Error
+	err = r.DB.WithContext(ctx).Where("time < ? and room_id = ?", t, roomID).Order("time desc").Limit(c).Find(&messages).Error
 	return
 }
