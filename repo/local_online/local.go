@@ -1,9 +1,9 @@
 package localonline
 
 import (
-	"errors"
 	"sync"
 
+	errStruct "github.com/img21326/fb_chat/structure/error"
 	"github.com/img21326/fb_chat/ws/client"
 )
 
@@ -41,6 +41,6 @@ func (r *OnlineRepo) FindUserByID(userId uint) (*client.Client, error) {
 	if client, ok := r.ClientMap[userId]; ok {
 		return client, nil
 	} else {
-		return nil, errors.New("RecordNotFound")
+		return nil, errStruct.RecordNotFound
 	}
 }

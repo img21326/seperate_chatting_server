@@ -74,6 +74,8 @@ func (u *RedisWebsocketUsecase) Run(ctx context.Context) {
 	log.Printf("[WebsocketUsecase] start")
 	for {
 		select {
+		case <-ctx.Done():
+			return
 		case client := <-u.RegisterClientChan:
 			u.LocalOnlineRepo.Register(client)
 			u.OnlineRepo.Register(ctx, client.User.ID)
