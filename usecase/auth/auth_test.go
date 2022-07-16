@@ -1,6 +1,7 @@
 package auth_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -21,7 +22,7 @@ func TestGenerateToken(t *testing.T) {
 		Name:  "Liao",
 	}
 
-	userRepo.EXPECT().FindByFbID("abcd").Return(&user, nil)
+	userRepo.EXPECT().FindByFbID(gomock.Any(), "abcd").Return(&user, nil)
 
 	AuthUsecase := auth.NewAuthUsecase(
 		auth.JwtConfig{
@@ -31,7 +32,8 @@ func TestGenerateToken(t *testing.T) {
 		userRepo,
 	)
 
-	token, err := AuthUsecase.GenerateToken(&user)
+	ctx := context.Background()
+	token, err := AuthUsecase.GenerateToken(ctx, &user)
 
 	assert.NotEqual(t, token, "")
 	assert.Equal(t, err, nil)
@@ -47,7 +49,7 @@ func TestGetUserByToken(t *testing.T) {
 		Name:  "Liao",
 	}
 
-	userRepo.EXPECT().FindByFbID("abcd").Return(&user, nil).AnyTimes()
+	userRepo.EXPECT().FindByFbID(gomock.Any(), "abcd").Return(&user, nil).AnyTimes()
 
 	AuthUsecase := auth.NewAuthUsecase(
 		auth.JwtConfig{
@@ -57,10 +59,11 @@ func TestGetUserByToken(t *testing.T) {
 		userRepo,
 	)
 
-	token, _ := AuthUsecase.GenerateToken(&user)
+	ctx := context.Background()
+	token, _ := AuthUsecase.GenerateToken(ctx, &user)
 
-	userFbId, err := AuthUsecase.VerifyToken(token)
+	getUser, err := AuthUsecase.VerifyToken(token)
 
-	assert.Equal(t, user.FbID, userFbId)
+	assert.Equal(t, user.FbID, getUser.FbID)
 	assert.Equal(t, err, nil)
 }

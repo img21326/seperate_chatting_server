@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -41,17 +42,17 @@ func (u *AuthUsecase) VerifyToken(token string) (user *model.User, err error) {
 	return
 }
 
-func (u *AuthUsecase) GenerateToken(user *model.User) (string, error) {
-	findUser, err := u.UserRepo.FindByFbID(user.FbID)
+func (u *AuthUsecase) GenerateToken(ctx context.Context, user *model.User) (string, error) {
+	findUser, err := u.UserRepo.FindByFbID(ctx, user.FbID)
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return "", err
 	}
 	if err == gorm.ErrRecordNotFound {
-		err = u.UserRepo.Create(user)
+		err = u.UserRepo.Create(ctx, user)
 		if err != nil {
 			return "", err
 		}
-		findUser, err = u.UserRepo.FindByFbID(user.FbID)
+		findUser, err = u.UserRepo.FindByFbID(ctx, user.FbID)
 		if err != nil {
 			return "", err
 		}

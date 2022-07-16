@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -19,5 +20,5 @@ type AuthClaims struct {
 
 type AuthUsecaseInterFace interface {
 	VerifyToken(token string) (user *model.User, err error)
-	GenerateToken(user *model.User) (string, error)
+	GenerateToken(ctx context.Context, user *model.User) (string, error)
 }
