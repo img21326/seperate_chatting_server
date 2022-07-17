@@ -3,12 +3,10 @@ package message
 import (
 	"context"
 	"errors"
-	"log"
 
 	RepoMessage "github.com/img21326/fb_chat/repo/message"
 	"github.com/img21326/fb_chat/repo/room"
 	"github.com/img21326/fb_chat/structure/message"
-	"github.com/img21326/fb_chat/structure/user"
 )
 
 type MessageUsecase struct {
@@ -29,43 +27,26 @@ func (u *MessageUsecase) LastByUserID(ctx context.Context, userID uint, c int) (
 	if err != nil {
 		return nil, err
 	}
-	messages, err = u.MessageRepo.LastsByRoomID(ctx, room.ID, 30)
+	messages, err = u.MessageRepo.LastsByRoomID(ctx, room.ID, c)
 	return
 }
 
-func (u *MessageUsecase) LastByMessageID(ctx context.Context, user *user.User, lastMessageID uint, c int) (messages []*message.Message, err error) {
+func (u *MessageUsecase) LastByMessageID(ctx context.Context, userID uint, lastMessageID uint, c int) (messages []*message.Message, err error) {
 	lastMessage, err := u.MessageRepo.GetByID(ctx, lastMessageID)
 	if err != nil {
 		return nil, err
 	}
-	room, err := u.RoomRepo.FindByUserId(ctx, user.ID)
+	room, err := u.RoomRepo.FindByUserId(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	if room.UserId1 != user.ID && room.UserId2 != user.ID {
+	if room.UserId1 != userID && room.UserId2 != userID {
 		return nil, errors.New("UserNotInThisRoom")
 	}
 	messages, err = u.MessageRepo.LastsByTime(ctx, lastMessage.RoomId, lastMessage.Time, c)
 	return
 }
 
-func (u *MessageUsecase) Save(m *message.Message) {
-	u.MessageChan <- m
-}
-
-func (u *MessageUsecase) SetMessageChan(m chan *message.Message) {
-	u.MessageChan = m
-}
-
-func (u *MessageUsecase) Run(ctx context.Context) {
-	log.Printf("[MessageUsecase] start\n")
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case mes := <-u.MessageChan:
-			log.Printf("[MessageUsecase] save message: %+v", mes)
-			u.MessageRepo.Save(ctx, mes)
-		}
-	}
+func (u *MessageUsecase) Save(ctx context.Context, message *message.Message) {
+	u.MessageRepo.Save(ctx, message)
 }
