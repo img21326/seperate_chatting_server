@@ -15,23 +15,15 @@ import (
 )
 
 type RedisPairUsecase struct {
-	InsertClientChan chan *client.Client
-	PairSuccessChan  chan *room.Room
-	PubMessageChan   chan<- *pubmessage.PublishMessage
-	WaitRepo         wait.WaitRepoInterface
-	OnlineRepo       online.OnlineRepoInterface
-	RoomRepo         RoomRepo.RoomRepoInterface
+	WaitRepo   wait.WaitRepoInterface
+	OnlineRepo online.OnlineRepoInterface
+	RoomRepo   RoomRepo.RoomRepoInterface
 }
 
 func NewRedisSubUsecase(
-	// insertClientChan <-chan *client.Client,
-	// pubMessageChan chan<- *pubmessage.PublishMessage,
 	waitRepo wait.WaitRepoInterface, onlineRepo online.OnlineRepoInterface, roomRepo RoomRepo.RoomRepoInterface,
 ) PairUsecaseInterface {
 	return &RedisPairUsecase{
-		InsertClientChan: make(chan *client.Client, 1024),
-		PairSuccessChan:  make(chan *room.Room, 1024),
-		// PubMessageChan:   pubMessageChan,
 		WaitRepo:   waitRepo,
 		OnlineRepo: onlineRepo,
 		RoomRepo:   roomRepo,
@@ -46,24 +38,19 @@ func (u *RedisPairUsecase) getPairQueueName(client *client.Client) string {
 	return fmt.Sprintf("%v_%v", client.WantToFind, client.User.Gender)
 }
 
-func (u *RedisPairUsecase) SetMessageChan(messageChan chan *pubmessage.PublishMessage) {
-	u.PubMessageChan = messageChan
-}
-
-func (u *RedisPairUsecase) AddToQueue(client *client.Client) {
-	u.InsertClientChan <- client
-}
-
 func (u *RedisPairUsecase) TryToPair(ctx context.Context, client *client.Client) (newRoom *room.Room, err error) {
 	pairStat := false
 	for {
+		// concurrence error
 		if u.WaitRepo.Len(ctx, u.getPairQueueName(client)) < 1 {
 			break
 		}
 		pairClientID, err := u.WaitRepo.Pop(ctx, u.getPairQueueName(client))
-		if err != nil {
+		if err != nil || pairClientID == 0 {
 			break
 		}
+		// concurrence error
+
 		// 如果使用者已經下線,則在找下一個
 		if !u.OnlineRepo.CheckUserOnline(ctx, pairClientID) {
 			continue

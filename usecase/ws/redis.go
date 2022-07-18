@@ -142,7 +142,8 @@ func (u *RedisWebsocketUsecase) Run(ctx context.Context) {
 			if receiveMessage.Type == "leave" {
 				if errReceiveClient == nil {
 					log.Printf("[WebsocketUsecase] send leave message by user %v\n", receiveMessage.SendFrom)
-					u.RoomRepo.Close(receiveClient.RoomId)
+					c := context.Background()
+					u.RoomRepo.Close(c, receiveClient.RoomId)
 					// 收訊者離開處理
 					u.refreshRoomUser(receiveClient)
 					u.UnRegisterClientChan <- receiveClient
