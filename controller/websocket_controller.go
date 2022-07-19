@@ -45,19 +45,20 @@ func NewWebsocketController(e *gin.Engine, hubUsecase hubUsecase.HubUsecaseInter
 	}
 
 	var onlineHub = hub.OnlineHub{
-		Register:     make(chan *client.Client, 1024),
-		Unregister:   make(chan *client.Client, 1024),
-		ReceiveChan:  make(chan message.PublishMessage, 1024),
-		PublishChan:  make(chan message.PublishMessage, 1024),
-		MessageQueue: &messageQueue,
-		HubUsecase:   hubUsecase,
+		Register:         make(chan *client.Client, 1024),
+		Unregister:       make(chan *client.Client, 1024),
+		ReceiveChan:      make(chan message.PublishMessage, 1024),
+		PublishChan:      make(chan message.PublishMessage, 1024),
+		MessageQueueChan: messageQueue.SendMessage,
+		CloseChan:        messageQueue.Close,
+		HubUsecase:       hubUsecase,
 	}
 
 	var pairHub = hub.PairHub{
-		Add:        make(chan *client.Client, 1024),
-		Delete:     make(chan *client.Client, 1024),
-		OnlineHub:  &onlineHub,
-		HubUsecase: hubUsecase,
+		Add:                make(chan *client.Client, 1024),
+		Delete:             make(chan *client.Client, 1024),
+		PublishMessageChan: onlineHub.PublishChan,
+		HubUsecase:         hubUsecase,
 	}
 
 	var subHub = hub.SubHub{

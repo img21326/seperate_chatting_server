@@ -13,12 +13,13 @@ import (
 )
 
 type OnlineHub struct {
-	Register     chan *client.Client
-	Unregister   chan *client.Client
-	ReceiveChan  chan message.PublishMessage
-	PublishChan  chan message.PublishMessage
-	MessageQueue *MessageQueue
-	HubUsecase   hub.HubUsecaseInterface
+	Register         chan *client.Client
+	Unregister       chan *client.Client
+	ReceiveChan      chan message.PublishMessage
+	PublishChan      chan message.PublishMessage
+	MessageQueueChan chan *message.MessageModel
+	CloseChan        chan uuid.UUID
+	HubUsecase       hub.HubUsecaseInterface
 }
 
 func (h *OnlineHub) Run() {
@@ -26,8 +27,8 @@ func (h *OnlineHub) Run() {
 	for {
 		select {
 		case client := <-h.Register:
-			h.HubUsecase.RegisterOnline(client)
 			log.Printf("[onlineHub] %v register online success\n", client.User.ID)
+			h.HubUsecase.RegisterOnline(client)
 		case client := <-h.Unregister:
 			h.HubUsecase.UnRegisterOnline(client)
 			log.Printf("[onlineHub] %v unregister success\n", client.User.ID)
@@ -72,12 +73,12 @@ func (h *OnlineHub) Run() {
 			if publishMessage.Type == "leave" {
 				// close room
 				roomID := publishMessage.Payload.(uuid.UUID)
-				h.MessageQueue.Close <- roomID
+				h.CloseChan <- roomID
 			}
 			if publishMessage.Type == "message" {
 				// save message
 				m := publishMessage.Payload.(message.MessageModel)
-				h.MessageQueue.SendMessage <- &m
+				h.MessageQueueChan <- &m
 				// change payload (dont send all of message model)
 				type M struct {
 					Message string

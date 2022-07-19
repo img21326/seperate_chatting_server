@@ -11,10 +11,10 @@ import (
 )
 
 type PairHub struct {
-	Add        chan *client.Client
-	Delete     chan *client.Client
-	OnlineHub  *OnlineHub
-	HubUsecase hub.HubUsecaseInterface
+	Add                chan *client.Client
+	Delete             chan *client.Client
+	PublishMessageChan chan message.PublishMessage
+	HubUsecase         hub.HubUsecaseInterface
 }
 
 func (h *PairHub) Run() {
@@ -50,8 +50,8 @@ func (h *PairHub) Run() {
 						SendTo:   client.User.ID,
 						Payload:  fmt.Sprintf("%v", err),
 					}
-					h.OnlineHub.PublishChan <- m1
-					h.OnlineHub.PublishChan <- m2
+					h.PublishMessageChan <- m1
+					h.PublishMessageChan <- m2
 				}
 				m1 := message.PublishMessage{
 					Type:     "pairSuccess",
@@ -65,8 +65,8 @@ func (h *PairHub) Run() {
 					SendTo:   client.User.ID,
 					Payload:  room.ID,
 				}
-				h.OnlineHub.PublishChan <- m1
-				h.OnlineHub.PublishChan <- m2
+				h.PublishMessageChan <- m1
+				h.PublishMessageChan <- m2
 				log.Printf("[pairHub] pair user: %v %v in room: %v\n", client.User.ID, pairClient.User.ID, room.ID)
 			}
 		case client := <-h.Delete:
