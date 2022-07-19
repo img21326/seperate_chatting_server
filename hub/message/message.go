@@ -36,7 +36,7 @@ func (h *MessageHub) Run(ctx context.Context) {
 			log.Printf("[MessageUsecase] save message: %+v", mes)
 			c := context.Background()
 			h.MessageUsecase.Save(c, mes)
-		case receiveMessage := <-u.ReceiveMessageChan:
+			// case receiveMessage := <-u.ReceiveMessageChan:
 			// sendMessage := pubmessage.SendToUserMessage{
 			// 	Type:    receiveMessage.Type,
 			// 	Payload: receiveMessage.Payload,

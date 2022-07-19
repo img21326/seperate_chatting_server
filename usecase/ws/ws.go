@@ -11,13 +11,13 @@ import (
 )
 
 type RedisWebsocketUsecase struct {
-	LocalOnlineRepo localonline.OnlineRepoInterface
+	LocalOnlineRepo localonline.LocalOnlineRepoInterface
 	OnlineRepo      online.OnlineRepoInterface
 	RoomRepo        RepoRoom.RoomRepoInterface
 }
 
 func NewRedisWebsocketUsecase(
-	localOnlineRepo localonline.OnlineRepoInterface, onlineRepo online.OnlineRepoInterface,
+	localOnlineRepo localonline.LocalOnlineRepoInterface, onlineRepo online.OnlineRepoInterface,
 	roomRepo RepoRoom.RoomRepoInterface,
 ) WebsocketUsecaseInterface {
 	return &RedisWebsocketUsecase{

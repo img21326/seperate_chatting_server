@@ -12,7 +12,7 @@ type OnlineRepo struct {
 	lock      *sync.Mutex
 }
 
-func NewOnlineRepo() OnlineRepoInterface {
+func NewOnlineRepo() LocalOnlineRepoInterface {
 	return &OnlineRepo{
 		ClientMap: make(map[uint]*client.Client),
 		lock:      &sync.Mutex{},
