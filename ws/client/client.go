@@ -94,7 +94,7 @@ func (c *Client) ReadPump(PublishChan chan *pubmessage.PublishMessage) {
 					Payload:  c.RoomId,
 				}
 				PublishChan <- &publishMessage
-				return
+				continue
 			}
 		}
 

@@ -4,21 +4,25 @@ import (
 	"context"
 	"errors"
 
+	localOnline "github.com/img21326/fb_chat/repo/local_online"
 	RepoMessage "github.com/img21326/fb_chat/repo/message"
 	"github.com/img21326/fb_chat/repo/room"
 	"github.com/img21326/fb_chat/structure/message"
 )
 
 type MessageUsecase struct {
-	MessageChan chan *message.Message
-	MessageRepo RepoMessage.MessageRepoInterface
-	RoomRepo    room.RoomRepoInterface
+	MessageChan     chan *message.Message
+	MessageRepo     RepoMessage.MessageRepoInterface
+	RoomRepo        room.RoomRepoInterface
+	LocalOnlineRepo localOnline.LocalOnlineRepoInterface
 }
 
-func NewMessageUsecase(messageRepo RepoMessage.MessageRepoInterface, roomRepo room.RoomRepoInterface) MessageUsecaseInterface {
+func NewMessageUsecase(messageRepo RepoMessage.MessageRepoInterface,
+	roomRepo room.RoomRepoInterface, localOnlineRepo localOnline.LocalOnlineRepoInterface) MessageUsecaseInterface {
 	return &MessageUsecase{
-		MessageRepo: messageRepo,
-		RoomRepo:    roomRepo,
+		MessageRepo:     messageRepo,
+		RoomRepo:        roomRepo,
+		LocalOnlineRepo: localOnlineRepo,
 	}
 }
 
