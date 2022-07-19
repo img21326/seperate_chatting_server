@@ -1,10 +1,11 @@
 package room
 
 import (
-	"errors"
-	"log"
+	"context"
 
 	"github.com/google/uuid"
+	errStruct "github.com/img21326/fb_chat/structure/error"
+	"github.com/img21326/fb_chat/structure/room"
 	"gorm.io/gorm"
 )
 
@@ -18,22 +19,21 @@ func NewRoomRepo(db *gorm.DB) RoomRepoInterface {
 	}
 }
 
-func (repo *RoomRepo) Create(room *Room) (err error) {
+func (repo *RoomRepo) Create(ctx context.Context, room *room.Room) (err error) {
 	room.ID = uuid.New()
-	return repo.DB.Create(room).Error
+	return repo.DB.WithContext(ctx).Create(room).Error
 }
 
-func (repo *RoomRepo) Close(roomId uuid.UUID) error {
-	return repo.DB.Model(&Room{}).Where("id = ?", roomId).Update("close", true).Error
+func (repo *RoomRepo) Close(ctx context.Context, roomId uuid.UUID) error {
+	return repo.DB.WithContext(ctx).Model(&room.Room{}).Where("id = ?", roomId).Update("close", true).Error
 }
 
-func (repo *RoomRepo) FindByUserId(userId uint) (room *Room, err error) {
-	if err := repo.DB.Where("user_id1 = ?", userId).Or("user_id2 = ?", userId).Last(&room).Error; err != nil {
+func (repo *RoomRepo) FindByUserId(ctx context.Context, userId uint) (room *room.Room, err error) {
+	if err := repo.DB.WithContext(ctx).Order("`rooms`.`created_at` desc").Where("user_id1 = ?", userId).Or("user_id2 = ?", userId).First(&room).Error; err != nil {
 		return nil, err
 	}
-	log.Printf("room: %+v", room)
 	if room.Close {
-		return nil, errors.New("RoomIsClosed")
+		return nil, errStruct.RoomIsClose
 	}
 	return
 }

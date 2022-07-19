@@ -1,9 +1,11 @@
 package wait
 
-import "github.com/img21326/fb_chat/ws/client"
+import (
+	"context"
+)
 
 type WaitRepoInterface interface {
-	Add(client *client.Client)
-	Remove(client *client.Client)
-	GetFirst(*client.Client) (*client.Client, error)
+	Add(ctx context.Context, queueName string, clientID uint)
+	Len(ctx context.Context, queueName string) int
+	Pop(ctx context.Context, queueName string) (clientID uint, err error)
 }

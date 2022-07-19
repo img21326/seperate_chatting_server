@@ -2,7 +2,7 @@ package ws
 
 import (
 	"github.com/img21326/fb_chat/helper"
-	"github.com/img21326/fb_chat/repo/room"
+	"github.com/img21326/fb_chat/structure/room"
 )
 
 type PairSuccess struct {

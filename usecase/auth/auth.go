@@ -1,28 +1,30 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/img21326/fb_chat/repo/user"
+	repo "github.com/img21326/fb_chat/repo/user"
+	model "github.com/img21326/fb_chat/structure/user"
 	"gorm.io/gorm"
 )
 
 type AuthUsecase struct {
 	JwtConfig JwtConfig
-	UserRepo  user.UserRepoInterFace
+	UserRepo  repo.UserRepoInterFace
 }
 
-func NewAuthUsecase(jwtConfig JwtConfig, userRepo user.UserRepoInterFace) AuthUsecaseInterFace {
+func NewAuthUsecase(jwtConfig JwtConfig, userRepo repo.UserRepoInterFace) AuthUsecaseInterFace {
 	return &AuthUsecase{
 		JwtConfig: jwtConfig,
 		UserRepo:  userRepo,
 	}
 }
 
-func (u *AuthUsecase) VerifyToken(token string) (user *user.UserModel, err error) {
+func (u *AuthUsecase) VerifyToken(token string) (user *model.User, err error) {
 	var claims AuthClaims
 	t, err := jwt.ParseWithClaims(token, &claims, func(jwtToken *jwt.Token) (interface{}, error) {
 		if _, ok := jwtToken.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -40,17 +42,17 @@ func (u *AuthUsecase) VerifyToken(token string) (user *user.UserModel, err error
 	return
 }
 
-func (u *AuthUsecase) GenerateToken(user *user.UserModel) (string, error) {
-	findUser, err := u.UserRepo.FindByFbID(user.FbID)
+func (u *AuthUsecase) GenerateToken(ctx context.Context, user *model.User) (string, error) {
+	findUser, err := u.UserRepo.FindByFbID(ctx, user.FbID)
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return "", err
 	}
 	if err == gorm.ErrRecordNotFound {
-		err = u.UserRepo.Create(user)
+		err = u.UserRepo.Create(ctx, user)
 		if err != nil {
 			return "", err
 		}
-		findUser, err = u.UserRepo.FindByFbID(user.FbID)
+		findUser, err = u.UserRepo.FindByFbID(ctx, user.FbID)
 		if err != nil {
 			return "", err
 		}

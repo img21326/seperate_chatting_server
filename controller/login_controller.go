@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/img21326/fb_chat/repo/user"
+	"github.com/img21326/fb_chat/structure/user"
 	"github.com/img21326/fb_chat/usecase/auth"
 	"github.com/img21326/fb_chat/usecase/oauth"
 )
@@ -15,7 +15,7 @@ type LoginController struct {
 	AuthUsecase  auth.AuthUsecaseInterFace
 }
 
-func NewLoginController(e *gin.Engine, oauthUsecase oauth.OauthUsecaseInterFace, authUsecase auth.AuthUsecaseInterFace) {
+func NewLoginController(e gin.IRoutes, oauthUsecase oauth.OauthUsecaseInterFace, authUsecase auth.AuthUsecaseInterFace) {
 	controller := &LoginController{
 		OauthUsecase: oauthUsecase,
 		AuthUsecase:  authUsecase,
@@ -47,7 +47,7 @@ func (c *LoginController) Redirect(ctx *gin.Context) {
 		})
 		return
 	}
-	userModel := &user.UserModel{
+	userModel := &user.User{
 		FbID:   u.ID,
 		Name:   u.Name,
 		Email:  u.Email,

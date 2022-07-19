@@ -6,31 +6,37 @@ import (
 	"net/http"
 	"strconv"
 
+	messageStruct "github.com/img21326/fb_chat/structure/message"
+
 	"github.com/gin-gonic/gin"
-	"github.com/go-redis/redis/v8"
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/img21326/fb_chat/helper"
-	"github.com/img21326/fb_chat/repo/message"
-	"github.com/img21326/fb_chat/repo/user"
-	"github.com/img21326/fb_chat/usecase/auth"
-	hubUsecase "github.com/img21326/fb_chat/usecase/hub"
+	pubmessage "github.com/img21326/fb_chat/structure/pub_message"
+	"github.com/img21326/fb_chat/structure/user"
+	"github.com/img21326/fb_chat/usecase/message"
+	"github.com/img21326/fb_chat/usecase/pair"
+	"github.com/img21326/fb_chat/usecase/sub"
+	"github.com/img21326/fb_chat/usecase/ws"
 	"github.com/img21326/fb_chat/ws/client"
-	"github.com/img21326/fb_chat/ws/hub"
 	"gorm.io/gorm"
 )
 
 type WebsocketController struct {
-	OnlineHub    *hub.OnlineHub
-	PairHub      *hub.PairHub
-	MessageQueue *hub.MessageQueue
-	HubUsecase   hubUsecase.HubUsecaseInterface
-	AuthUsecase  auth.AuthUsecaseInterFace
-	WSUpgrader   websocket.Upgrader
+	WSUpgrader     websocket.Upgrader
+	WsUsecase      ws.WebsocketUsecaseInterface
+	SubUscase      sub.SubMessageUsecaseInterface
+	PairUsecase    pair.PairUsecaseInterface
+	MessageUsecase message.MessageUsecaseInterface
+	PubMessageChan chan *pubmessage.PublishMessage
 }
 
-func NewWebsocketController(e *gin.Engine, hubUsecase hubUsecase.HubUsecaseInterface, authUsecase auth.AuthUsecaseInterFace, redis *redis.Client) {
-	var upgrader = websocket.Upgrader{
+func NewWebsocketController(e gin.IRoutes,
+	wsUsecase ws.WebsocketUsecaseInterface,
+	subUsecase sub.SubMessageUsecaseInterface,
+	pairUsecase pair.PairUsecaseInterface,
+	messageUsecase message.MessageUsecaseInterface,
+) {
+	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 		CheckOrigin: func(r *http.Request) bool {
@@ -38,47 +44,29 @@ func NewWebsocketController(e *gin.Engine, hubUsecase hubUsecase.HubUsecaseInter
 		},
 	}
 
-	var messageQueue = hub.MessageQueue{
-		SendMessage: make(chan *message.MessageModel, 4096),
-		Close:       make(chan uuid.UUID, 1024),
-		HubUsecase:  hubUsecase,
+	publishMessageChan := make(chan *pubmessage.PublishMessage, 1024)
+	pairUsecase.SetMessageChan(publishMessageChan)
+
+	saveMessageChan := make(chan *messageStruct.Message, 1024)
+	messageUsecase.SetMessageChan(saveMessageChan)
+	wsUsecase.SetSaveMessageChan(saveMessageChan)
+
+	controller := WebsocketController{
+		WSUpgrader:     upgrader,
+		WsUsecase:      wsUsecase,
+		SubUscase:      subUsecase,
+		PairUsecase:    pairUsecase,
+		MessageUsecase: messageUsecase,
+		PubMessageChan: publishMessageChan,
 	}
 
-	var onlineHub = hub.OnlineHub{
-		Register:         make(chan *client.Client, 1024),
-		Unregister:       make(chan *client.Client, 1024),
-		ReceiveChan:      make(chan message.PublishMessage, 1024),
-		PublishChan:      make(chan message.PublishMessage, 1024),
-		MessageQueueChan: messageQueue.SendMessage,
-		CloseChan:        messageQueue.Close,
-		HubUsecase:       hubUsecase,
-	}
-
-	var pairHub = hub.PairHub{
-		Add:                make(chan *client.Client, 1024),
-		Delete:             make(chan *client.Client, 1024),
-		PublishMessageChan: onlineHub.PublishChan,
-		HubUsecase:         hubUsecase,
-	}
-
-	var subHub = hub.SubHub{
-		OnlineHub: &onlineHub,
-		Redis:     redis,
-	}
-
-	controller := &WebsocketController{
-		OnlineHub:    &onlineHub,
-		PairHub:      &pairHub,
-		MessageQueue: &messageQueue,
-		WSUpgrader:   upgrader,
-		HubUsecase:   hubUsecase,
-		AuthUsecase:  authUsecase,
-	}
 	ctx := context.Background()
-	go subHub.MessageController(ctx)
-	go controller.OnlineHub.Run()
-	go controller.PairHub.Run()
-	go controller.MessageQueue.Run()
+	go controller.SubUscase.Subscribe(ctx, "message", controller.WsUsecase.ReceiveMessage)
+	go controller.SubUscase.Publish(ctx, "message", publishMessageChan)
+	go controller.WsUsecase.Run(ctx)
+	go controller.PairUsecase.Run(ctx)
+	go controller.MessageUsecase.Run(ctx)
+
 	e.GET("/ws", controller.WS)
 }
 
@@ -94,14 +82,14 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 	m := gorm.Model{
 		ID: uint(id),
 	}
-	user := &user.UserModel{
+	user := &user.User{
 		Model:  m,
 		FbID:   helper.RandString(16),
 		Name:   helper.RandString(5),
 		Gender: "male",
 	}
 	log.Printf("new ws connection: %v", user.Name)
-	room, err := c.HubUsecase.FindRoomByUserId(user.ID)
+	room, err := c.WsUsecase.FindRoomByUserId(ctx, user.ID)
 	if err != nil && err != gorm.ErrRecordNotFound && err.Error() != "RoomIsClosed" {
 		log.Printf("find room error: %v", err)
 		return
@@ -111,12 +99,15 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 		log.Printf("ws error: %v", err)
 		return
 	}
+	contextBackground, cancel := context.WithCancel(context.Background())
 	client := client.Client{
-		Conn: conn,
-		Send: make(chan []byte, 256),
-		User: *user,
+		Conn:      conn,
+		Send:      make(chan []byte, 256),
+		User:      *user,
+		Ctx:       contextBackground,
+		CtxCancel: cancel,
 	}
-	c.OnlineHub.Register <- &client
+	c.WsUsecase.Register(&client)
 	if room != nil {
 		log.Printf("new ws connection: %v in room %v", user.Name, room.ID)
 		client.RoomId = room.ID
@@ -127,7 +118,7 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 		}
 		client.Send <- []byte("{'type': 'inRoom'}")
 	} else {
-		log.Printf("new ws connection: %v new pairing", user.Name)
+		log.Printf("new ws connection: %v with new pairing", user.Name)
 		want, ok := ctx.GetQuery("want")
 		if !ok {
 			log.Printf("ws not set want param")
@@ -135,11 +126,11 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 			return
 		}
 		client.WantToFind = want
-		c.PairHub.Add <- &client
+		c.PairUsecase.Add(&client)
 		client.Send <- []byte("{'type': 'paring'}")
 	}
 
-	go client.ReadPump(c.OnlineHub.PublishChan, c.OnlineHub.Unregister, c.PairHub.Delete)
+	go client.ReadPump(c.PubMessageChan)
 	go client.WritePump()
 
 }

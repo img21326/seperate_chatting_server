@@ -5,10 +5,11 @@
 package mock
 
 import (
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	user "github.com/img21326/fb_chat/repo/user"
+	user "github.com/img21326/fb_chat/structure/user"
 )
 
 // MockUserRepoInterFace is a mock of UserRepoInterFace interface.
@@ -35,30 +36,30 @@ func (m *MockUserRepoInterFace) EXPECT() *MockUserRepoInterFaceMockRecorder {
 }
 
 // Create mocks base method.
-func (m *MockUserRepoInterFace) Create(u *user.UserModel) error {
+func (m *MockUserRepoInterFace) Create(ctx context.Context, u *user.User) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Create", u)
+	ret := m.ctrl.Call(m, "Create", ctx, u)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Create indicates an expected call of Create.
-func (mr *MockUserRepoInterFaceMockRecorder) Create(u interface{}) *gomock.Call {
+func (mr *MockUserRepoInterFaceMockRecorder) Create(ctx, u interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockUserRepoInterFace)(nil).Create), u)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockUserRepoInterFace)(nil).Create), ctx, u)
 }
 
 // FindByFbID mocks base method.
-func (m *MockUserRepoInterFace) FindByFbID(FbId string) (*user.UserModel, error) {
+func (m *MockUserRepoInterFace) FindByFbID(ctx context.Context, FbId string) (*user.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindByFbID", FbId)
-	ret0, _ := ret[0].(*user.UserModel)
+	ret := m.ctrl.Call(m, "FindByFbID", ctx, FbId)
+	ret0, _ := ret[0].(*user.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FindByFbID indicates an expected call of FindByFbID.
-func (mr *MockUserRepoInterFaceMockRecorder) FindByFbID(FbId interface{}) *gomock.Call {
+func (mr *MockUserRepoInterFaceMockRecorder) FindByFbID(ctx, FbId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByFbID", reflect.TypeOf((*MockUserRepoInterFace)(nil).FindByFbID), FbId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByFbID", reflect.TypeOf((*MockUserRepoInterFace)(nil).FindByFbID), ctx, FbId)
 }

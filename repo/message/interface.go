@@ -5,30 +5,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
+	"github.com/img21326/fb_chat/structure/message"
 )
 
-type PublishMessage struct {
-	Type     string      `json:"type"`
-	SendFrom uint        `json:"sendFrom"`
-	SendTo   uint        `json:"sendTo"`
-	Payload  interface{} `json:"payload"`
-}
-
-type SendToUserMessage struct {
-	Type    string      `json:"type"`
-	Payload interface{} `json:"payload"`
-}
-
-type MessageModel struct {
-	gorm.Model
-	RoomId  uuid.UUID
-	UserId  uint
-	Message string
-	Time    time.Time
-}
-
 type MessageRepoInterface interface {
-	Save(context.Context, *MessageModel)
-	Publish(context.Context, []byte) error
+	Save(context.Context, *message.Message)
+	GetByID(ctx context.Context, ID uint) (*message.Message, error)
+	LastsByRoomID(ctx context.Context, roomID uuid.UUID, c int) ([]*message.Message, error)
+	LastsByTime(ctx context.Context, roomID uuid.UUID, t time.Time, c int) ([]*message.Message, error)
 }
