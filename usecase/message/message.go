@@ -2,12 +2,17 @@ package message
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"log"
 
+	"github.com/google/uuid"
 	localOnline "github.com/img21326/fb_chat/repo/local_online"
 	RepoMessage "github.com/img21326/fb_chat/repo/message"
 	"github.com/img21326/fb_chat/repo/room"
 	"github.com/img21326/fb_chat/structure/message"
+	pubmessage "github.com/img21326/fb_chat/structure/pub_message"
+	"github.com/img21326/fb_chat/ws/client"
 )
 
 type MessageUsecase struct {
@@ -53,4 +58,82 @@ func (u *MessageUsecase) LastByMessageID(ctx context.Context, userID uint, lastM
 
 func (u *MessageUsecase) Save(ctx context.Context, message *message.Message) {
 	u.MessageRepo.Save(ctx, message)
+}
+
+func (u *MessageUsecase) GetOnlineClients(senderID uint, receiverID uint) (sender *client.Client, receiver *client.Client) {
+	sender, _ = u.LocalOnlineRepo.FindUserByID(senderID)
+	receiver, _ = u.LocalOnlineRepo.FindUserByID(receiverID)
+	return
+}
+
+func (u *MessageUsecase) HandlePairSuccessMessage(receiver *client.Client, receiveMessage *pubmessage.PublishMessage) error {
+	payload := receiveMessage.Payload.(string)
+	uuid, err := uuid.Parse(payload)
+	if err != nil {
+		log.Printf("[MessageUsecase] HandlePairSuccessMessage convert uuid err: %v", err)
+		return err
+	}
+	jsonMessage, err := json.Marshal(receiveMessage)
+	if err != nil {
+		log.Printf("[MessageUsecase] HandlePairSuccessMessage convert receive message err: %v", err)
+		return err
+	}
+	receiver.RoomId = uuid
+	receiver.PairId = receiveMessage.SendFrom
+	receiver.Send <- jsonMessage
+	return nil
+}
+
+func (u *MessageUsecase) HandleClientOnMessage(sender *client.Client, receiver *client.Client, receiveMessage *pubmessage.PublishMessage, saveMessageChan chan *message.Message) error {
+	jsonMessage, err := json.Marshal(receiveMessage)
+	if err != nil {
+		log.Printf("[MessageUsecase] HandleClientOnMessage convert receive message err: %v", err)
+		return err
+	}
+	if receiver != nil {
+		receiver.Send <- jsonMessage
+	}
+	// ack message
+	if sender != nil {
+		sender.Send <- jsonMessage
+		// which server send message, which server should save it.
+		if receiveMessage.Type == "message" {
+			receiveM, err := json.Marshal(receiveMessage.Payload)
+			if err != nil {
+				log.Printf("[MessageUsecase] HandleClientOnMessage save message convert to json err: %v", err)
+				return err
+			}
+			var M message.Message
+			err = json.Unmarshal(receiveM, &M)
+			if err != nil {
+				log.Printf("[MessageUsecase] HandleClientOnMessage save message convert to struct err: %v", err)
+				return err
+			}
+			saveMessageChan <- &M
+		}
+	}
+	return nil
+}
+
+func (u *MessageUsecase) refreshRoomUser(client *client.Client) {
+	client.RoomId = uuid.Nil
+	client.PairId = 0
+	client.CtxCancel()
+}
+
+func (u *MessageUsecase) HandleLeaveMessage(sender *client.Client, receiver *client.Client, unRegisterFunc func(ctx context.Context, client *client.Client)) error {
+	c := context.Background()
+	// 收訊者離開處理
+	if receiver != nil {
+		u.refreshRoomUser(receiver)
+		unRegisterFunc(c, receiver)
+	}
+
+	// 發送者離開處理
+	if sender != nil {
+		u.RoomRepo.Close(c, receiver.RoomId)
+		u.refreshRoomUser(sender)
+		unRegisterFunc(c, sender)
+	}
+	return nil
 }

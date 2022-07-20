@@ -27,12 +27,6 @@ func NewRedisWebsocketUsecase(
 	}
 }
 
-// func (u *RedisWebsocketUsecase) refreshRoomUser(client *client.Client) {
-// 	client.CtxCancel()
-// 	client.RoomId = uuid.Nil
-// 	client.PairId = 0
-// }
-
 func (u *RedisWebsocketUsecase) FindRoomByUserId(ctx context.Context, userID uint) (*room.Room, error) {
 	return u.RoomRepo.FindByUserId(ctx, userID)
 }

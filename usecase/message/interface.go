@@ -16,10 +16,9 @@ type MessageUsecaseInterface interface {
 
 	// For Hub
 	Save(ctx context.Context, message *message.Message)
-
 	GetOnlineClients(senderID uint, receiverID uint) (sender *client.Client, receiver *client.Client)
-	HandlePairSuccessMessage(receiver *client.Client, message *pubmessage.PublishMessage) error
-	HandleClientOnMessage(sender *client.Client, receiver *client.Client, message *pubmessage.PublishMessage) error
-	HandleLeaveMessage(sender *client.Client, receiver *client.Client, unRegister chan *client.Client) error
+	HandlePairSuccessMessage(receiver *client.Client, receiveMessage *pubmessage.PublishMessage) error
+	HandleClientOnMessage(sender *client.Client, receiver *client.Client, receiveMessage *pubmessage.PublishMessage, saveMessageChan chan *message.Message) error
+	HandleLeaveMessage(sender *client.Client, receiver *client.Client, unRegisterFunc func(ctx context.Context, client *client.Client)) error
 	// For Hub End
 }
