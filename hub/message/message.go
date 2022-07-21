@@ -56,11 +56,9 @@ func (h *MessageHub) Run(ctx context.Context) {
 			// it will send pair success message to each client
 			// so just handler receive side
 			if receiveMessage.Type == "pairSuccess" {
-				if receiver != nil {
-					err := h.MessageUsecase.HandlePairSuccessMessage(receiver, receiveMessage)
-					if err != nil {
-						log.Printf("[MessageHub] HandlePairSuccessMessage err: %v", err)
-					}
+				err := h.MessageUsecase.HandlePairSuccessMessage(receiver, receiveMessage)
+				if err != nil {
+					log.Printf("[MessageHub] HandlePairSuccessMessage err: %v", err)
 				}
 				continue
 			}

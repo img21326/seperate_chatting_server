@@ -2,6 +2,7 @@ package message
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -10,7 +11,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/img21326/fb_chat/mock"
 	"github.com/img21326/fb_chat/structure/message"
+	pubmessage "github.com/img21326/fb_chat/structure/pub_message"
 	"github.com/img21326/fb_chat/structure/room"
+	"github.com/img21326/fb_chat/ws/client"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -128,4 +131,129 @@ func TestSave(t *testing.T) {
 	messageRepo.EXPECT().Save(gomock.Any(), &m).Times(1)
 	ctx := context.Background()
 	messageUsecase.Save(ctx, &m)
+}
+
+func TestGetOnlineClients(t *testing.T) {
+	c := gomock.NewController(t)
+	localOnlineRepo := mock.NewMockLocalOnlineRepoInterface(c)
+
+	messageUsecase := MessageUsecase{
+		LocalOnlineRepo: localOnlineRepo,
+	}
+
+	c1 := &client.Client{}
+	c1.User.ID = 1
+	c2 := &client.Client{}
+	c2.User.ID = 2
+
+	localOnlineRepo.EXPECT().FindUserByID(gomock.Any()).Times(2).
+		DoAndReturn(func(clientID uint) (*client.Client, error) {
+			if clientID == uint(1) {
+				return c1, nil
+			} else {
+				return c2, nil
+			}
+		})
+	sender, receiver := messageUsecase.GetOnlineClients(uint(1), uint(2))
+	assert.Equal(t, c1, sender)
+	assert.Equal(t, c2, receiver)
+}
+
+func TestHandlePairSuccessMessage(t *testing.T) {
+	MessageUsecase := &MessageUsecase{}
+
+	receiver := client.Client{
+		Send: make(chan []byte, 1),
+	}
+	roomID := uuid.New()
+	mes := &pubmessage.PublishMessage{
+		SendFrom: 2,
+		Payload:  roomID.String(),
+	}
+
+	jsonMessage, _ := json.Marshal(mes)
+
+	err := MessageUsecase.HandlePairSuccessMessage(&receiver, mes)
+	assert.Nil(t, err)
+	assert.Equal(t, receiver.RoomId, roomID)
+	assert.Equal(t, receiver.PairId, uint(2))
+	assert.Equal(t, jsonMessage, <-receiver.Send)
+}
+
+func TestHandleClientOnMessage(t *testing.T) {
+	MessageUsecase := &MessageUsecase{}
+
+	saveChan := make(chan *message.Message, 1)
+
+	sender := client.Client{
+		Send: make(chan []byte, 1),
+	}
+	sender.User.ID = 1
+
+	receiver := client.Client{
+		Send: make(chan []byte, 1),
+	}
+	roomID := uuid.New()
+
+	message := &message.Message{
+		ID:      1,
+		RoomId:  roomID,
+		UserId:  1,
+		Message: "test",
+		Time:    time.Now(),
+	}
+	pubMes := &pubmessage.PublishMessage{
+		Type:     "message",
+		SendFrom: 2,
+		Payload:  message,
+	}
+
+	jsonMessage, _ := json.Marshal(pubMes)
+
+	err := MessageUsecase.HandleClientOnMessage(&sender, &receiver, pubMes, saveChan)
+	getMes := <-saveChan
+	assert.Nil(t, err)
+	assert.Equal(t, jsonMessage, <-receiver.Send)
+	assert.Equal(t, jsonMessage, <-sender.Send)
+	assert.Equal(t, message.ID, getMes.ID)
+}
+
+func TestHandleLeaveMessage(t *testing.T) {
+	c := gomock.NewController(t)
+	roomRepo := mock.NewMockRoomRepoInterface(c)
+	MessageUsecase := &MessageUsecase{
+		RoomRepo: roomRepo,
+	}
+
+	roomID := uuid.New()
+
+	roomRepo.EXPECT().Close(gomock.Any(), roomID).Times(1)
+
+	sender := &client.Client{
+		Send:   make(chan []byte, 1),
+		RoomId: roomID,
+		PairId: 1,
+	}
+	sender.User.ID = 1
+
+	receiver := &client.Client{
+		Send:   make(chan []byte, 1),
+		RoomId: roomID,
+		PairId: 1,
+	}
+	receiver.User.ID = 2
+
+	callCount := 0
+	unRegisterFunc := func(ctx context.Context, client *client.Client) {
+		callCount += 1
+	}
+
+	err := MessageUsecase.HandleLeaveMessage(sender, receiver, unRegisterFunc)
+
+	assert.Nil(t, err)
+	assert.Equal(t, receiver.RoomId, uuid.Nil)
+	assert.Equal(t, sender.RoomId, uuid.Nil)
+	assert.Equal(t, receiver.PairId, uint(0))
+	assert.Equal(t, sender.PairId, uint(0))
+	assert.Equal(t, callCount, 2)
 }

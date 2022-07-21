@@ -10,8 +10,10 @@ import (
 	localOnline "github.com/img21326/fb_chat/repo/local_online"
 	RepoMessage "github.com/img21326/fb_chat/repo/message"
 	"github.com/img21326/fb_chat/repo/room"
+	errorStruct "github.com/img21326/fb_chat/structure/error"
 	"github.com/img21326/fb_chat/structure/message"
 	pubmessage "github.com/img21326/fb_chat/structure/pub_message"
+
 	"github.com/img21326/fb_chat/ws/client"
 )
 
@@ -67,6 +69,9 @@ func (u *MessageUsecase) GetOnlineClients(senderID uint, receiverID uint) (sende
 }
 
 func (u *MessageUsecase) HandlePairSuccessMessage(receiver *client.Client, receiveMessage *pubmessage.PublishMessage) error {
+	if receiver == nil {
+		return errorStruct.ClientNotInHost
+	}
 	payload := receiveMessage.Payload.(string)
 	uuid, err := uuid.Parse(payload)
 	if err != nil {
@@ -118,22 +123,21 @@ func (u *MessageUsecase) HandleClientOnMessage(sender *client.Client, receiver *
 func (u *MessageUsecase) refreshRoomUser(client *client.Client) {
 	client.RoomId = uuid.Nil
 	client.PairId = 0
-	client.CtxCancel()
 }
 
 func (u *MessageUsecase) HandleLeaveMessage(sender *client.Client, receiver *client.Client, unRegisterFunc func(ctx context.Context, client *client.Client)) error {
 	c := context.Background()
+
+	// 發送者離開處理
+	if sender != nil {
+		u.RoomRepo.Close(c, sender.RoomId)
+		u.refreshRoomUser(sender)
+		unRegisterFunc(c, sender)
+	}
 	// 收訊者離開處理
 	if receiver != nil {
 		u.refreshRoomUser(receiver)
 		unRegisterFunc(c, receiver)
-	}
-
-	// 發送者離開處理
-	if sender != nil {
-		u.RoomRepo.Close(c, receiver.RoomId)
-		u.refreshRoomUser(sender)
-		unRegisterFunc(c, sender)
 	}
 	return nil
 }
