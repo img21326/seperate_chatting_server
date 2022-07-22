@@ -19,7 +19,6 @@ func TestTryToPairWithLenSmallerThan1(t *testing.T) {
 	waitRepo := mock.NewMockWaitRepoInterface(c)
 
 	waitRepo.EXPECT().Len(gomock.Any(), "female_male").Times(1).Return(0)
-	waitRepo.EXPECT().Add(gomock.Any(), "male_female", uint(1)).Times(1)
 
 	pairUsecase := RedisPairUsecase{
 		WaitRepo: waitRepo,
@@ -31,7 +30,7 @@ func TestTryToPairWithLenSmallerThan1(t *testing.T) {
 	client.WantToFind = "female"
 	room, err := pairUsecase.TryToPair(ctx, &client)
 	assert.Nil(t, room)
-	assert.Equal(t, err, errorStruct.PairNotSuccess)
+	assert.Equal(t, err, errorStruct.QueueSmallerThan1)
 }
 
 func TestTryToPairWithSuccess(t *testing.T) {
@@ -94,6 +93,23 @@ func TestTryToPairWithUserNotOnline(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, room)
 	assert.Equal(t, room.UserId2, pairID)
+}
+
+func TestAddToQueue(t *testing.T) {
+	c := gomock.NewController(t)
+	waitRepo := mock.NewMockWaitRepoInterface(c)
+
+	waitRepo.EXPECT().Add(gomock.Any(), "male_female", uint(1)).Times(1)
+	pairUsecase := RedisPairUsecase{
+		WaitRepo: waitRepo,
+	}
+
+	ctx := context.Background()
+	client := client.Client{}
+	client.User.ID = 1
+	client.User.Gender = "male"
+	client.WantToFind = "female"
+	pairUsecase.AddToQueue(ctx, &client)
 }
 
 func TestPairSuccess(t *testing.T) {

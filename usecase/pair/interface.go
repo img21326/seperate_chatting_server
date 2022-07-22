@@ -10,5 +10,6 @@ import (
 
 type PairUsecaseInterface interface {
 	TryToPair(ctx context.Context, client *client.Client) (room *room.Room, err error)
+	AddToQueue(ctx context.Context, client *client.Client)
 	PairSuccess(ctx context.Context, room *room.Room) (m1 *pubmessage.PublishMessage, m2 *pubmessage.PublishMessage, err error)
 }

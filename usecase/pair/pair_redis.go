@@ -43,11 +43,11 @@ func (u *RedisPairUsecase) TryToPair(ctx context.Context, client *client.Client)
 	for {
 		// concurrence error
 		if u.WaitRepo.Len(ctx, u.getPairQueueName(client)) < 1 {
-			break
+			return nil, errorStruct.QueueSmallerThan1
 		}
 		pairClientID, err := u.WaitRepo.Pop(ctx, u.getPairQueueName(client))
-		if err != nil || pairClientID == 0 {
-			break
+		if err != nil {
+			return nil, err
 		}
 		// concurrence error
 
@@ -64,13 +64,17 @@ func (u *RedisPairUsecase) TryToPair(ctx context.Context, client *client.Client)
 		log.Printf("[RedisPairUsecase] pair success: %v & %v\n", newRoom.UserId1, newRoom.UserId2)
 		break
 	}
-	if !pairStat {
-		u.WaitRepo.Add(ctx, u.getInsertQueueName(client), client.User.ID)
-		log.Printf("[RedisPairUsecase] add queue user: %v\n", client.User.ID)
-		return nil, errorStruct.PairNotSuccess
+	if pairStat {
+		return newRoom, nil
 	}
-	return newRoom, nil
+	return nil, errorStruct.PairNotSuccess
 }
+
+func (u *RedisPairUsecase) AddToQueue(ctx context.Context, client *client.Client) {
+	u.WaitRepo.Add(ctx, u.getInsertQueueName(client), client.User.ID)
+	log.Printf("[RedisPairUsecase] add queue user: %v\n", client.User.ID)
+}
+
 func (u *RedisPairUsecase) PairSuccess(ctx context.Context, room *room.Room) (m1 *pubmessage.PublishMessage,
 	m2 *pubmessage.PublishMessage, err error) {
 	err = u.RoomRepo.Create(ctx, room)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	errorStruct "github.com/img21326/fb_chat/structure/error"
 	pubmessage "github.com/img21326/fb_chat/structure/pub_message"
 	"github.com/img21326/fb_chat/structure/room"
 	PairUsecase "github.com/img21326/fb_chat/usecase/pair"
@@ -42,7 +43,9 @@ func (h *PairHub) Run(ctx context.Context) {
 			c := context.Background()
 			room, err := h.PairUsecase.TryToPair(c, client)
 			if err != nil {
-				continue
+				if err == errorStruct.PairNotSuccess {
+					h.PairUsecase.AddToQueue(c, client)
+				}
 			}
 			h.PairSuccessChan <- room
 		case room := <-h.PairSuccessChan:
