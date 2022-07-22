@@ -45,18 +45,21 @@ func (h *PairHub) Run(ctx context.Context) {
 			if err != nil {
 				if err == errorStruct.PairNotSuccess {
 					h.PairUsecase.AddToQueue(c, client)
+				} else {
+					log.Printf("[PairHub] error: %+v", err)
 				}
+				continue
 			}
 			h.PairSuccessChan <- room
 		case room := <-h.PairSuccessChan:
 			c := context.Background()
 			m1, m2, err := h.PairUsecase.PairSuccess(c, room)
 			if err != nil {
-				log.Printf("[RedisPairHub] error: %+v, room: %+v", err, room)
+				log.Printf("[PairHub] error: %+v, room: %+v", err, room)
 			}
 			h.PubMessageChan <- m1
 			h.PubMessageChan <- m2
-			log.Printf("[RedisPairUsecase] pair user: %v %v in room: %v\n", room.UserId1, room.UserId2, room.ID)
+			log.Printf("[PairHub] pair user: %v %v in room: %v\n", room.UserId1, room.UserId2, room.ID)
 		}
 	}
 }
