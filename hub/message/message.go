@@ -47,9 +47,10 @@ func (h *MessageHub) Run(ctx context.Context) {
 			// 	Payload: receiveMessage.Payload,
 			// }
 			sender, receiver := h.MessageUsecase.GetOnlineClients(receiveMessage.SendFrom, receiveMessage.SendTo)
-
+			log.Printf("[MessageHub] get user %v, %v", sender, receiver)
 			if sender == nil && receiver == nil {
 				// no client need to hanlde
+				log.Printf("[MessageHub] no user")
 				continue
 			}
 
