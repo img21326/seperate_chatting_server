@@ -55,7 +55,7 @@ func (c *LoginController) Redirect(ctx *gin.Context) {
 		FbLink: u.Link,
 		Birth:  u.Birth,
 	}
-	jwtToken, err := c.AuthUsecase.GenerateToken(userModel)
+	jwtToken, err := c.AuthUsecase.GenerateToken(ctx, userModel)
 	if err != nil {
 		ctx.JSON(500, gin.H{
 			"error": fmt.Sprintf("%v", err),

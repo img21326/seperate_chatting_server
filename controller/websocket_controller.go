@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"strconv"
 
-	messageStruct "github.com/img21326/fb_chat/structure/message"
-
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/img21326/fb_chat/helper"
+	MessageHub "github.com/img21326/fb_chat/hub/message"
+	PairHub "github.com/img21326/fb_chat/hub/pair"
 	pubmessage "github.com/img21326/fb_chat/structure/pub_message"
 	"github.com/img21326/fb_chat/structure/user"
 	"github.com/img21326/fb_chat/usecase/message"
@@ -27,7 +27,9 @@ type WebsocketController struct {
 	SubUscase      sub.SubMessageUsecaseInterface
 	PairUsecase    pair.PairUsecaseInterface
 	MessageUsecase message.MessageUsecaseInterface
-	PubMessageChan chan *pubmessage.PublishMessage
+
+	InsertClientToQueueChan chan *client.Client
+	PubMessageChan          chan *pubmessage.PublishMessage
 }
 
 func NewWebsocketController(e gin.IRoutes,
@@ -44,28 +46,26 @@ func NewWebsocketController(e gin.IRoutes,
 		},
 	}
 
-	publishMessageChan := make(chan *pubmessage.PublishMessage, 1024)
-	pairUsecase.SetMessageChan(publishMessageChan)
-
-	saveMessageChan := make(chan *messageStruct.Message, 1024)
-	messageUsecase.SetMessageChan(saveMessageChan)
-	wsUsecase.SetSaveMessageChan(saveMessageChan)
-
 	controller := WebsocketController{
 		WSUpgrader:     upgrader,
 		WsUsecase:      wsUsecase,
 		SubUscase:      subUsecase,
 		PairUsecase:    pairUsecase,
 		MessageUsecase: messageUsecase,
-		PubMessageChan: publishMessageChan,
+
+		InsertClientToQueueChan: make(chan *client.Client, 1024),
+		PubMessageChan:          make(chan *pubmessage.PublishMessage, 1024),
 	}
 
 	ctx := context.Background()
-	go controller.SubUscase.Subscribe(ctx, "message", controller.WsUsecase.ReceiveMessage)
-	go controller.SubUscase.Publish(ctx, "message", publishMessageChan)
-	go controller.WsUsecase.Run(ctx)
-	go controller.PairUsecase.Run(ctx)
-	go controller.MessageUsecase.Run(ctx)
+
+	receiveMessageChan := make(chan *pubmessage.PublishMessage, 1024)
+
+	messageHub := MessageHub.NewMessageHub(messageUsecase, wsUsecase, receiveMessageChan)
+	pairHub := PairHub.NewPairHub(pairUsecase, controller.PubMessageChan, controller.InsertClientToQueueChan)
+
+	go messageHub.Run(ctx)
+	go pairHub.Run(ctx)
 
 	e.GET("/ws", controller.WS)
 }
@@ -107,7 +107,7 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 		Ctx:       contextBackground,
 		CtxCancel: cancel,
 	}
-	c.WsUsecase.Register(&client)
+	c.WsUsecase.Register(ctx, &client)
 	if room != nil {
 		log.Printf("new ws connection: %v in room %v", user.Name, room.ID)
 		client.RoomId = room.ID
@@ -126,7 +126,7 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 			return
 		}
 		client.WantToFind = want
-		c.PairUsecase.Add(&client)
+		c.PairUsecase.AddToQueue(ctx, &client)
 		client.Send <- []byte("{'type': 'paring'}")
 	}
 

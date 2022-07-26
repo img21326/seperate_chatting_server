@@ -37,7 +37,7 @@ func (c *MessageController) GetHistory(ctx *gin.Context) {
 			"messages": messages,
 		})
 	} else {
-		messages, err := c.MessageUsecase.LastByMessageID(ctx, user, uint(lastMessageId), 20)
+		messages, err := c.MessageUsecase.LastByMessageID(ctx, user.ID, uint(lastMessageId), 20)
 		if err != nil {
 			ctx.JSON(500, gin.H{
 				"error": fmt.Sprintf("%v", err),

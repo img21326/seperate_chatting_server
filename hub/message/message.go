@@ -8,12 +8,12 @@ import (
 	pubmessage "github.com/img21326/fb_chat/structure/pub_message"
 	MessageUsecase "github.com/img21326/fb_chat/usecase/message"
 	WSUsecase "github.com/img21326/fb_chat/usecase/ws"
-	"github.com/img21326/fb_chat/ws/client"
 )
 
 type MessageHub struct {
 	SaveMessageChan    chan *message.Message
 	ReceiveMessageChan chan *pubmessage.PublishMessage
+	PubMessageChan     chan *pubmessage.PublishMessage
 
 	MessageUsecase MessageUsecase.MessageUsecaseInterface
 	WSUsecase      WSUsecase.WebsocketUsecaseInterface
@@ -21,7 +21,6 @@ type MessageHub struct {
 
 func NewMessageHub(messageUsecase MessageUsecase.MessageUsecaseInterface,
 	wsUsecase WSUsecase.WebsocketUsecaseInterface,
-	unRegisterChan chan *client.Client,
 	receiveMessageChan chan *pubmessage.PublishMessage) *MessageHub {
 	return &MessageHub{
 		MessageUsecase:     messageUsecase,
