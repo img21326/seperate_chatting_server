@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/go-playground/assert/v2"
 	"github.com/golang/mock/gomock"
 	"github.com/img21326/fb_chat/mock"
 	"github.com/img21326/fb_chat/structure/message"
@@ -69,6 +70,42 @@ func TestReceivePairSuccess(t *testing.T) {
 	}
 	mesHub.ReceiveMessageChan <- mes1
 	mesHub.ReceiveMessageChan <- mes2
+
+	mesHub.Run(ctx)
+}
+
+func TestClientOnMessage(t *testing.T) {
+	c := gomock.NewController(t)
+
+	mes1 := &pubmessage.PublishMessage{Type: "message", SendFrom: 1, SendTo: 2}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	messageUsecase := mock.NewMockMessageUsecaseInterface(c)
+
+	sender := client.Client{}
+	sender.User.ID = 1
+	receiver := client.Client{}
+	receiver.User.ID = 2
+	messageUsecase.EXPECT().GetOnlineClients(gomock.Any(), gomock.Any()).Times(1).DoAndReturn(
+		func(senderID uint, receiverID uint) (*client.Client, *client.Client) {
+			return &sender, &receiver
+		})
+	messageUsecase.EXPECT().HandleClientOnMessage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1).DoAndReturn(
+		func(getSender *client.Client, getReceiver *client.Client, receiveMessage *pubmessage.PublishMessage, saveMessageChan chan *message.Message) error {
+			assert.Equal(t, sender, getSender)
+			assert.Equal(t, receiver, getReceiver)
+			assert.Equal(t, receiveMessage, mes1)
+			cancel()
+			return nil
+		})
+
+	mesHub := MessageHub{
+		ReceiveMessageChan: make(chan *pubmessage.PublishMessage, 1),
+		SaveMessageChan:    make(chan *message.Message, 1),
+		MessageUsecase:     messageUsecase,
+	}
+	mesHub.ReceiveMessageChan <- mes1
 
 	mesHub.Run(ctx)
 }
