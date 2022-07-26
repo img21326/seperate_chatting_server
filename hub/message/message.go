@@ -63,7 +63,6 @@ func (h *MessageHub) Run(ctx context.Context) {
 				}
 				continue
 			}
-
 			// send message to receiver and ack message for sender
 			// also sender side need to save message
 			if receiveMessage.Type == "pairError" || receiveMessage.Type == "message" || receiveMessage.Type == "leave" {
@@ -72,9 +71,11 @@ func (h *MessageHub) Run(ctx context.Context) {
 					log.Printf("[MessageHub] HandleClientOnMessage err: %v", err)
 				}
 			}
-
 			if receiveMessage.Type == "leave" {
-				h.MessageUsecase.HandleLeaveMessage(sender, receiver, h.WSUsecase.UnRegister)
+				err := h.MessageUsecase.HandleLeaveMessage(sender, receiver, h.WSUsecase.UnRegister)
+				if err != nil {
+					log.Printf("[MessageHub] HandleLeaveMessage err: %v", err)
+				}
 			}
 		}
 	}
