@@ -31,7 +31,7 @@ func NewMessageHub(messageUsecase MessageUsecase.MessageUsecaseInterface,
 }
 
 func (h *MessageHub) Run(ctx context.Context) {
-	log.Printf("[MessageUsecase] start\n")
+	log.Printf("[MessageHub] start\n")
 	for {
 		select {
 		case <-ctx.Done():

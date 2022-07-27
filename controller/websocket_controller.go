@@ -11,11 +11,12 @@ import (
 	"github.com/img21326/fb_chat/helper"
 	MessageHub "github.com/img21326/fb_chat/hub/message"
 	PairHub "github.com/img21326/fb_chat/hub/pair"
+	PubSubHub "github.com/img21326/fb_chat/hub/pubsub"
 	pubmessage "github.com/img21326/fb_chat/structure/pub_message"
 	"github.com/img21326/fb_chat/structure/user"
 	"github.com/img21326/fb_chat/usecase/message"
 	"github.com/img21326/fb_chat/usecase/pair"
-	"github.com/img21326/fb_chat/usecase/sub"
+	"github.com/img21326/fb_chat/usecase/pubsub"
 	"github.com/img21326/fb_chat/usecase/ws"
 	"github.com/img21326/fb_chat/ws/client"
 	"gorm.io/gorm"
@@ -24,17 +25,18 @@ import (
 type WebsocketController struct {
 	WSUpgrader     websocket.Upgrader
 	WsUsecase      ws.WebsocketUsecaseInterface
-	SubUscase      sub.SubMessageUsecaseInterface
+	PubsubUscase   pubsub.SubMessageUsecaseInterface
 	PairUsecase    pair.PairUsecaseInterface
 	MessageUsecase message.MessageUsecaseInterface
 
 	InsertClientToQueueChan chan *client.Client
 	PubMessageChan          chan *pubmessage.PublishMessage
+	SubMessageChan          chan *pubmessage.PublishMessage
 }
 
 func NewWebsocketController(e gin.IRoutes,
 	wsUsecase ws.WebsocketUsecaseInterface,
-	subUsecase sub.SubMessageUsecaseInterface,
+	pubsubUsecase pubsub.SubMessageUsecaseInterface,
 	pairUsecase pair.PairUsecaseInterface,
 	messageUsecase message.MessageUsecaseInterface,
 ) {
@@ -49,21 +51,24 @@ func NewWebsocketController(e gin.IRoutes,
 	controller := WebsocketController{
 		WSUpgrader:     upgrader,
 		WsUsecase:      wsUsecase,
-		SubUscase:      subUsecase,
+		PubsubUscase:   pubsubUsecase,
 		PairUsecase:    pairUsecase,
 		MessageUsecase: messageUsecase,
 
 		InsertClientToQueueChan: make(chan *client.Client, 1024),
-		PubMessageChan:          make(chan *pubmessage.PublishMessage, 1024),
+		PubMessageChan:          make(chan *pubmessage.PublishMessage, 4096),
+		SubMessageChan:          make(chan *pubmessage.PublishMessage, 4096),
 	}
 
 	ctx := context.Background()
 
-	receiveMessageChan := make(chan *pubmessage.PublishMessage, 1024)
-
-	messageHub := MessageHub.NewMessageHub(messageUsecase, wsUsecase, receiveMessageChan)
+	subHub := PubSubHub.NewSubHub(pubsubUsecase)
+	pubHub := PubSubHub.NewPubHub(pubsubUsecase)
+	messageHub := MessageHub.NewMessageHub(messageUsecase, wsUsecase, controller.SubMessageChan)
 	pairHub := PairHub.NewPairHub(pairUsecase, controller.PubMessageChan, controller.InsertClientToQueueChan)
 
+	go subHub.Run(ctx, "message", controller.SubMessageChan)
+	go pubHub.Run(ctx, "message", controller.PubMessageChan)
 	go messageHub.Run(ctx)
 	go pairHub.Run(ctx)
 

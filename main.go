@@ -26,7 +26,7 @@ import (
 	"github.com/img21326/fb_chat/usecase/message"
 	"github.com/img21326/fb_chat/usecase/oauth"
 	"github.com/img21326/fb_chat/usecase/pair"
-	"github.com/img21326/fb_chat/usecase/sub"
+	"github.com/img21326/fb_chat/usecase/pubsub"
 	"github.com/img21326/fb_chat/usecase/ws"
 	"gorm.io/gorm"
 )
@@ -50,7 +50,7 @@ func initRedis() *redis.Client {
 }
 
 func initRedisRepo(db *gorm.DB, redis *redis.Client) (messageRepo RepoMessage.MessageRepoInterface,
-	localOnlineRepo RepoLocal.OnlineRepoInterface, onlineRepo RepoOnline.OnlineRepoInterface, roomRepo RepoRoom.RoomRepoInterface,
+	localOnlineRepo RepoLocal.LocalOnlineRepoInterface, onlineRepo RepoOnline.OnlineRepoInterface, roomRepo RepoRoom.RoomRepoInterface,
 	userRepo RepoUser.UserRepoInterFace, waitRepo RepoWait.WaitRepoInterface, pubSubRepo RepoPubSub.PubSubRepoInterface) {
 	messageRepo = RepoMessage.NewMessageRepo(db)
 	localOnlineRepo = RepoLocal.NewOnlineRepo()
@@ -85,9 +85,9 @@ func main() {
 
 	// For Websocket
 	wsUsecase := ws.NewRedisWebsocketUsecase(localOnlineRepo, onlineRepo, roomRepo)
-	subUsecase := sub.NewRedisSubUsecase(pubSubRepo)
+	subUsecase := pubsub.NewRedisSubUsecase(pubSubRepo)
 	pairUsecase := pair.NewRedisSubUsecase(waitRepo, onlineRepo, roomRepo)
-	messageUsecase := message.NewMessageUsecase(messageRepo, roomRepo)
+	messageUsecase := message.NewMessageUsecase(messageRepo, roomRepo, localOnlineRepo)
 
 	server := gin.Default()
 
