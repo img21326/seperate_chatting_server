@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 	repo "github.com/img21326/fb_chat/repo/user"
 	model "github.com/img21326/fb_chat/structure/user"
-	"gorm.io/gorm"
 )
 
 type AuthUsecase struct {
@@ -42,31 +42,34 @@ func (u *AuthUsecase) VerifyToken(token string) (user *model.User, err error) {
 	return
 }
 
-func (u *AuthUsecase) GenerateToken(ctx context.Context, user *model.User) (string, error) {
-	findUser, err := u.UserRepo.FindByID(ctx, user.UUID.String())
-	if err != nil && err != gorm.ErrRecordNotFound {
-		return "", err
-	}
-	if err == gorm.ErrRecordNotFound {
+func (u *AuthUsecase) GenerateToken(ctx context.Context, user *model.User) (token string, err error) {
+	var usr *model.User
+	if user.UUID == uuid.Nil {
+		user.UUID = uuid.New()
 		err = u.UserRepo.Create(ctx, user)
 		if err != nil {
 			return "", err
 		}
-		findUser = user
+		usr = user
+	} else {
+		usr, err = u.UserRepo.FindByID(ctx, user.UUID.String())
+		if err != nil {
+			return "", err
+		}
 	}
 	jwtExpireAt := time.Now().Add(u.JwtConfig.ExpireDuration).Unix()
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, AuthClaims{
+	jwtClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, AuthClaims{
 		StandardClaims: jwt.StandardClaims{
-			Subject:   findUser.UUID.String(),
+			Subject:   user.UUID.String(),
 			ExpiresAt: jwtExpireAt,
 		},
-		User: *findUser,
+		User: *usr,
 	})
-	tokenString, err := token.SignedString(u.JwtConfig.Key)
+	token, err = jwtClaims.SignedString(u.JwtConfig.Key)
 	if err != nil {
 		return "", err
 	}
 
-	return tokenString, nil
+	return
 
 }
