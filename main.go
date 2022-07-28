@@ -10,6 +10,7 @@ import (
 	"github.com/glebarez/sqlite"
 	"github.com/go-redis/redis/v8"
 	"github.com/img21326/fb_chat/controller"
+	messageController "github.com/img21326/fb_chat/controller/message"
 	"github.com/img21326/fb_chat/helper"
 	"github.com/img21326/fb_chat/middleware/jwt"
 	RepoLocal "github.com/img21326/fb_chat/repo/local_online"
@@ -97,7 +98,8 @@ func main() {
 
 	controller.NewLoginController(server, FacebookUsecase, AuthUsecase)
 	controller.NewWebsocketController(server, wsUsecase, subUsecase, pairUsecase, messageUsecase)
-	controller.NewMessageController(jwtRoute, messageUsecase)
+
+	messageController.NewMessageController()
 
 	port := os.Args[1]
 

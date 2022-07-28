@@ -15,14 +15,15 @@ import (
 )
 
 type Client struct {
-	Conn       *websocket.Conn
-	Ctx        context.Context
-	CtxCancel  context.CancelFunc
-	Send       chan []byte
-	User       user.User
-	WantToFind string
-	RoomId     uuid.UUID
-	PairId     uint
+	Conn           *websocket.Conn
+	Ctx            context.Context
+	CtxCancel      context.CancelFunc
+	PubMessageChan chan *pubmessage.PublishMessage
+	Send           chan []byte
+	User           user.User
+	WantToFind     string
+	RoomId         uuid.UUID
+	PairId         uint
 }
 
 const (
@@ -39,7 +40,7 @@ const (
 	maxMessageSize = 512
 )
 
-func (c *Client) ReadPump(PublishChan chan *pubmessage.PublishMessage) {
+func (c *Client) ReadPump() {
 
 	c.Conn.SetReadLimit(maxMessageSize)
 	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
@@ -82,7 +83,7 @@ func (c *Client) ReadPump(PublishChan chan *pubmessage.PublishMessage) {
 					SendTo:   c.PairId,
 					Payload:  messageModel,
 				}
-				PublishChan <- &publishMessage
+				c.PubMessageChan <- &publishMessage
 				continue
 			}
 			if getMessage.Type == "leave" {
@@ -93,7 +94,7 @@ func (c *Client) ReadPump(PublishChan chan *pubmessage.PublishMessage) {
 					SendTo:   c.PairId,
 					Payload:  c.RoomId,
 				}
-				PublishChan <- &publishMessage
+				c.PubMessageChan <- &publishMessage
 				continue
 			}
 		}

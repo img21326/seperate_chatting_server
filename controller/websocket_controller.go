@@ -106,11 +106,12 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 	}
 	contextBackground, cancel := context.WithCancel(context.Background())
 	client := client.Client{
-		Conn:      conn,
-		Send:      make(chan []byte, 256),
-		User:      *user,
-		Ctx:       contextBackground,
-		CtxCancel: cancel,
+		Conn:           conn,
+		Send:           make(chan []byte, 256),
+		PubMessageChan: c.PubMessageChan,
+		User:           *user,
+		Ctx:            contextBackground,
+		CtxCancel:      cancel,
 	}
 	c.WsUsecase.Register(ctx, &client)
 	if room != nil {
@@ -135,7 +136,7 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 		client.Send <- []byte("{'type': 'paring'}")
 	}
 
-	go client.ReadPump(c.PubMessageChan)
+	go client.ReadPump()
 	go client.WritePump()
 
 }

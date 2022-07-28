@@ -1,7 +1,8 @@
-package controller
+package message
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -23,6 +24,7 @@ func NewMessageController(e gin.IRoutes, messageUsecase message.MessageUsecaseIn
 
 func (c *MessageController) GetHistory(ctx *gin.Context) {
 	user := ctx.MustGet("user").(*user.User)
+	log.Printf("user : %+v", user)
 	lastMessageIdstr, ok := ctx.GetQuery("last_message_id")
 	lastMessageId, _ := strconv.Atoi(lastMessageIdstr)
 	if !ok {
