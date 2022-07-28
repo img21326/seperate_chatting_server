@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/glebarez/sqlite"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 
@@ -23,16 +24,15 @@ func initDB() *gorm.DB {
 func TestCreate(t *testing.T) {
 	db := initDB()
 	userRepo := &UserRepo{DB: db}
+	uuid := uuid.New()
 	u := user.User{
-		FbID:  "fb",
-		Name:  "name",
-		Email: "email@email.com",
+		UUID: uuid,
 	}
 	ctx := context.Background()
 	userRepo.Create(ctx, &u)
 
 	var getU user.User
-	err := userRepo.DB.Where(user.User{FbID: "fb"}).First(&getU).Error
+	err := userRepo.DB.Where(user.User{UUID: uuid}).First(&getU).Error
 	assert.Nil(t, err)
 	assert.Equal(t, u.ID, getU.ID)
 }
@@ -40,15 +40,14 @@ func TestCreate(t *testing.T) {
 func TestFindByFbID(t *testing.T) {
 	db := initDB()
 	userRepo := &UserRepo{DB: db}
+	uuid := uuid.New()
 	u := user.User{
-		FbID:  "fb",
-		Name:  "name",
-		Email: "email@email.com",
+		UUID: uuid,
 	}
 	ctx := context.Background()
 	userRepo.Create(ctx, &u)
 
-	getU, err := userRepo.FindByFbID(ctx, "fb")
+	getU, err := userRepo.FindByID(ctx, uuid.String())
 	assert.Nil(t, err)
 	assert.Equal(t, u.ID, getU.ID)
 }

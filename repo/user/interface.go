@@ -8,5 +8,5 @@ import (
 
 type UserRepoInterFace interface {
 	Create(ctx context.Context, u *user.User) error
-	FindByFbID(ctx context.Context, FbId string) (*user.User, error)
+	FindByID(ctx context.Context, ID string) (*user.User, error)
 }

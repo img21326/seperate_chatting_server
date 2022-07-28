@@ -43,7 +43,7 @@ func (u *AuthUsecase) VerifyToken(token string) (user *model.User, err error) {
 }
 
 func (u *AuthUsecase) GenerateToken(ctx context.Context, user *model.User) (string, error) {
-	findUser, err := u.UserRepo.FindByFbID(ctx, user.FbID)
+	findUser, err := u.UserRepo.FindByID(ctx, user.UUID.String())
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return "", err
 	}
@@ -52,15 +52,12 @@ func (u *AuthUsecase) GenerateToken(ctx context.Context, user *model.User) (stri
 		if err != nil {
 			return "", err
 		}
-		findUser, err = u.UserRepo.FindByFbID(ctx, user.FbID)
-		if err != nil {
-			return "", err
-		}
+		findUser = user
 	}
 	jwtExpireAt := time.Now().Add(u.JwtConfig.ExpireDuration).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, AuthClaims{
 		StandardClaims: jwt.StandardClaims{
-			Subject:   findUser.FbID,
+			Subject:   findUser.UUID.String(),
 			ExpiresAt: jwtExpireAt,
 		},
 		User: *findUser,

@@ -1,18 +1,18 @@
 package user
 
 import (
-	"time"
-
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 // Model
 type User struct {
 	gorm.Model `gorm:"index:idx_name,unique"`
-	FbID       string
-	Name       string
-	Email      string
+	UUID       uuid.UUID
 	Gender     string
-	FbLink     string
-	Birth      time.Time
+	// FbID       string
+	// Name       string
+	// Email      string
+	// FbLink     string
+	// Birth      time.Time
 }

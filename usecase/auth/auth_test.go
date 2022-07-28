@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	"github.com/img21326/fb_chat/mock"
 	"github.com/img21326/fb_chat/structure/user"
 	"github.com/img21326/fb_chat/usecase/auth"
@@ -16,13 +17,12 @@ func TestGenerateToken(t *testing.T) {
 	c := gomock.NewController(t)
 	userRepo := mock.NewMockUserRepoInterFace(c)
 
+	uid := uuid.New()
 	user := user.User{
-		FbID:  "abcd",
-		Email: "abc@gmail.com",
-		Name:  "Liao",
+		UUID: uid,
 	}
 
-	userRepo.EXPECT().FindByFbID(gomock.Any(), "abcd").Return(&user, nil)
+	userRepo.EXPECT().FindByID(gomock.Any(), uid.String()).Return(&user, nil)
 
 	AuthUsecase := auth.NewAuthUsecase(
 		auth.JwtConfig{
@@ -43,13 +43,12 @@ func TestGetUserByToken(t *testing.T) {
 	c := gomock.NewController(t)
 	userRepo := mock.NewMockUserRepoInterFace(c)
 
+	uid := uuid.New()
 	user := user.User{
-		FbID:  "abcd",
-		Email: "abc@gmail.com",
-		Name:  "Liao",
+		UUID: uid,
 	}
 
-	userRepo.EXPECT().FindByFbID(gomock.Any(), "abcd").Return(&user, nil).AnyTimes()
+	userRepo.EXPECT().FindByID(gomock.Any(), uid.String()).Return(&user, nil).AnyTimes()
 
 	AuthUsecase := auth.NewAuthUsecase(
 		auth.JwtConfig{
@@ -64,6 +63,6 @@ func TestGetUserByToken(t *testing.T) {
 
 	getUser, err := AuthUsecase.VerifyToken(token)
 
-	assert.Equal(t, user.FbID, getUser.FbID)
+	assert.Equal(t, user.UUID, getUser.UUID)
 	assert.Equal(t, err, nil)
 }
