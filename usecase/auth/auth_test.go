@@ -11,6 +11,7 @@ import (
 	"github.com/img21326/fb_chat/structure/user"
 	"github.com/img21326/fb_chat/usecase/auth"
 	"github.com/stretchr/testify/assert"
+	"gorm.io/gorm"
 )
 
 func TestGenerateToken(t *testing.T) {
@@ -64,5 +65,36 @@ func TestGetUserByToken(t *testing.T) {
 	getUser, err := AuthUsecase.VerifyToken(token)
 
 	assert.Equal(t, user.UUID, getUser.UUID)
+	assert.Equal(t, err, nil)
+}
+
+func TestGetUserWithNotFoundErr(t *testing.T) {
+	c := gomock.NewController(t)
+	userRepo := mock.NewMockUserRepoInterFace(c)
+
+	uid := uuid.New()
+	u := &user.User{
+		UUID: uid,
+	}
+
+	userRepo.EXPECT().FindByID(gomock.Any(), uid.String()).Times(1).Return(nil, gorm.ErrRecordNotFound)
+	userRepo.EXPECT().Create(gomock.Any(), u).Times(1).Do(func(ctx context.Context, u *user.User) {
+		u.ID = 1
+	})
+
+	AuthUsecase := auth.NewAuthUsecase(
+		auth.JwtConfig{
+			Key:            []byte("TEST"),
+			ExpireDuration: time.Hour * 24,
+		},
+		userRepo,
+	)
+
+	ctx := context.Background()
+	token, _ := AuthUsecase.GenerateToken(ctx, u)
+
+	getUser, err := AuthUsecase.VerifyToken(token)
+
+	assert.Equal(t, u.UUID, getUser.UUID)
 	assert.Equal(t, err, nil)
 }
