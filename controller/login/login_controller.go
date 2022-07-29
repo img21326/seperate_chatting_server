@@ -33,6 +33,13 @@ func (c *LoginController) Register(ctx *gin.Context) {
 		})
 		return
 	}
+	if gender != "male" && gender != "female" {
+		log.Print("[LoginController] Register without gender params")
+		ctx.JSON(410, gin.H{
+			"error": "gender should be male or female",
+		})
+		return
+	}
 	newUser := &user.User{
 		Gender: gender,
 	}
