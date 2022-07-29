@@ -95,8 +95,9 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 		cancel()
 		return
 	}
-
+	log.Printf("find room %v", room)
 	c.WsUsecase.Register(ctx, &client)
+
 	if room != nil {
 		log.Printf("new ws connection: %v in room %v", user.UUID, room.ID)
 		client.RoomId = room.ID

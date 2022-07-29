@@ -9,9 +9,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
 	"github.com/go-redis/redis/v8"
-	"github.com/img21326/fb_chat/controller"
-	messageController "github.com/img21326/fb_chat/controller/message"
-	"github.com/img21326/fb_chat/helper"
+	ControllerLogin "github.com/img21326/fb_chat/controller/login"
+	ControllerMessage "github.com/img21326/fb_chat/controller/message"
+	ControllerWS "github.com/img21326/fb_chat/controller/ws"
+	"github.com/img21326/fb_chat/hub"
 	"github.com/img21326/fb_chat/middleware/jwt"
 	RepoLocal "github.com/img21326/fb_chat/repo/local_online"
 	RepoMessage "github.com/img21326/fb_chat/repo/message"
@@ -25,7 +26,6 @@ import (
 	ModelUser "github.com/img21326/fb_chat/structure/user"
 	"github.com/img21326/fb_chat/usecase/auth"
 	"github.com/img21326/fb_chat/usecase/message"
-	"github.com/img21326/fb_chat/usecase/oauth"
 	"github.com/img21326/fb_chat/usecase/pair"
 	"github.com/img21326/fb_chat/usecase/pubsub"
 	"github.com/img21326/fb_chat/usecase/ws"
@@ -75,31 +75,30 @@ func main() {
 	messageRepo, localOnlineRepo, onlineRepo, roomRepo, userRepo, waitRepo, pubSubRepo := initRedisRepo(db, redis)
 
 	//For AuthUsecase
-	FacebookOauth := helper.NewFacebookOauth()
-	FacebookUsecase := oauth.NewFacebookOauthUsecase(FacebookOauth)
+	// FacebookOauth := helper.NewFacebookOauth()
+	// FacebookUsecase := oauth.NewFacebookOauthUsecase(FacebookOauth)
 
 	jwtConfig := auth.JwtConfig{
 		Key:            []byte("secret168"),
 		ExpireDuration: time.Hour * 24,
 	}
-	AuthUsecase := auth.NewAuthUsecase(jwtConfig, userRepo)
 
-	// For Websocket
+	authUsecase := auth.NewAuthUsecase(jwtConfig, userRepo)
 	wsUsecase := ws.NewRedisWebsocketUsecase(localOnlineRepo, onlineRepo, roomRepo)
 	subUsecase := pubsub.NewRedisSubUsecase(pubSubRepo)
 	pairUsecase := pair.NewRedisSubUsecase(waitRepo, onlineRepo, roomRepo)
 	messageUsecase := message.NewMessageUsecase(messageRepo, roomRepo, localOnlineRepo)
 
-	server := gin.Default()
+	pubChan, queueChan := hub.StartHub(subUsecase, pairUsecase, messageUsecase, wsUsecase)
 
-	jwtMiddleware := jwt.NewJWTValidMiddleware(AuthUsecase)
+	server := gin.Default()
+	jwtMiddleware := jwt.NewJWTValidMiddleware(authUsecase)
 	jwtRoute := server.Group("/auth")
 	jwtRoute.Use(jwtMiddleware.ValidHeaderToken)
 
-	controller.NewLoginController(server, FacebookUsecase, AuthUsecase)
-	controller.NewWebsocketController(server, wsUsecase, subUsecase, pairUsecase, messageUsecase)
-
-	messageController.NewMessageController()
+	ControllerLogin.NewLoginController(server, authUsecase)
+	ControllerMessage.NewMessageController(jwtRoute, messageUsecase)
+	ControllerWS.NewWebsocketController(server, wsUsecase, authUsecase, pubChan, queueChan)
 
 	port := os.Args[1]
 
