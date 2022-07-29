@@ -7,6 +7,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/img21326/fb_chat/mock"
+	errStruct "github.com/img21326/fb_chat/structure/error"
 	"github.com/img21326/fb_chat/structure/room"
 	"github.com/img21326/fb_chat/ws/client"
 	"github.com/stretchr/testify/assert"
@@ -30,6 +31,26 @@ func TestFindRoomByUserId(t *testing.T) {
 	room, err := wsUsecase.FindRoomByUserId(ctx, uint(1))
 	assert.Nil(t, err)
 	assert.Equal(t, room, &r)
+}
+
+func TestFindRoomByUserIdClosed(t *testing.T) {
+	c := gomock.NewController(t)
+	roomRepo := mock.NewMockRoomRepoInterface(c)
+	r := room.Room{
+		UserId1: 1,
+		UserId2: 2,
+		ID:      uuid.New(),
+		Close:   true,
+	}
+	roomRepo.EXPECT().FindByUserId(gomock.Any(), uint(1)).Times(1).Return(&r, nil)
+
+	wsUsecase := RedisWebsocketUsecase{
+		RoomRepo: roomRepo,
+	}
+	ctx := context.Background()
+	room, err := wsUsecase.FindRoomByUserId(ctx, uint(1))
+	assert.Nil(t, room)
+	assert.Equal(t, err, errStruct.RoomIsClose)
 }
 
 func TestRegister(t *testing.T) {

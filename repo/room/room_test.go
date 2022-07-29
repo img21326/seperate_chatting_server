@@ -7,7 +7,6 @@ import (
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 
-	"github.com/img21326/fb_chat/structure/error"
 	"github.com/img21326/fb_chat/structure/room"
 	"github.com/stretchr/testify/assert"
 )
@@ -73,19 +72,19 @@ func TestFindByUserId(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestFindByUserIdWithClose(t *testing.T) {
-	db := initDB()
-	roomRepo := &RoomRepo{
-		DB: db,
-	}
-	ctx := context.Background()
-	r := room.Room{
-		UserId1: 1,
-		UserId2: 2,
-	}
-	roomRepo.Create(ctx, &r)
-	roomRepo.Close(ctx, r.ID)
-	getRoom, err := roomRepo.FindByUserId(ctx, 1)
-	assert.Equal(t, err, error.RoomIsClose)
-	assert.Nil(t, getRoom)
-}
+// func TestFindByUserIdWithClose(t *testing.T) {
+// 	db := initDB()
+// 	roomRepo := &RoomRepo{
+// 		DB: db,
+// 	}
+// 	ctx := context.Background()
+// 	r := room.Room{
+// 		UserId1: 1,
+// 		UserId2: 2,
+// 	}
+// 	roomRepo.Create(ctx, &r)
+// 	roomRepo.Close(ctx, r.ID)
+// 	getRoom, err := roomRepo.FindByUserId(ctx, 1)
+// 	assert.Equal(t, err, error.RoomIsClose)
+// 	assert.Nil(t, getRoom)
+// }

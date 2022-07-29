@@ -6,6 +6,7 @@ import (
 	localonline "github.com/img21326/fb_chat/repo/local_online"
 	"github.com/img21326/fb_chat/repo/online"
 	RepoRoom "github.com/img21326/fb_chat/repo/room"
+	errStruct "github.com/img21326/fb_chat/structure/error"
 	"github.com/img21326/fb_chat/structure/room"
 	"github.com/img21326/fb_chat/ws/client"
 )
@@ -28,7 +29,14 @@ func NewRedisWebsocketUsecase(
 }
 
 func (u *RedisWebsocketUsecase) FindRoomByUserId(ctx context.Context, userID uint) (*room.Room, error) {
-	return u.RoomRepo.FindByUserId(ctx, userID)
+	room, err := u.RoomRepo.FindByUserId(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if room.Close {
+		return nil, errStruct.RoomIsClose
+	}
+	return room, nil
 }
 
 func (u *RedisWebsocketUsecase) UnRegister(ctx context.Context, client *client.Client) {

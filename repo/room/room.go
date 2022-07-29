@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	errStruct "github.com/img21326/fb_chat/structure/error"
 	"github.com/img21326/fb_chat/structure/room"
 	"gorm.io/gorm"
 )
@@ -31,9 +30,6 @@ func (repo *RoomRepo) Close(ctx context.Context, roomId uuid.UUID) error {
 func (repo *RoomRepo) FindByUserId(ctx context.Context, userId uint) (room *room.Room, err error) {
 	if err := repo.DB.WithContext(ctx).Order("`rooms`.`created_at` desc").Where("user_id1 = ?", userId).Or("user_id2 = ?", userId).First(&room).Error; err != nil {
 		return nil, err
-	}
-	if room.Close {
-		return nil, errStruct.RoomIsClose
 	}
 	return
 }
