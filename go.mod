@@ -54,6 +54,7 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/gomodule/redigo v1.8.9 // indirect
 	github.com/mattn/go-sqlite3 v1.14.12 // indirect
+	github.com/posener/wstest v1.2.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
 	github.com/yuin/gopher-lua v0.0.0-20220504180219-658193537a64 // indirect
 	modernc.org/libc v1.16.8 // indirect
