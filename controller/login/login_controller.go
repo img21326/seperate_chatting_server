@@ -48,7 +48,7 @@ func (c *LoginController) Register(ctx *gin.Context) {
 	if err != nil {
 		log.Printf("[LoginController] Register Generate token err: %v", err)
 		ctx.JSON(500, gin.H{
-			"error": fmt.Sprintf("%v", err),
+			"error": fmt.Sprint("server generate token error"),
 		})
 		return
 	}
