@@ -8,7 +8,7 @@ import (
 // Modal
 type Room struct {
 	gorm.Model
-	ID      uuid.UUID `json:"id"`
+	UUID    uuid.UUID `json:"uuid"`
 	UserId1 uint      `json:"user_id1"`
 	UserId2 uint      `json:"user_id2"`
 	Close   bool      `json:"close"`

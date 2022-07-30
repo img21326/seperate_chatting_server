@@ -21,7 +21,7 @@ func TestInsertClientPairSuccess(t *testing.T) {
 	cli.User.ID = 1
 
 	r := &room.Room{
-		ID: uuid.New(),
+		UUID: uuid.New(),
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -74,7 +74,7 @@ func TestInsertClientPairNotSuccess(t *testing.T) {
 func TestPairSuccess(t *testing.T) {
 	c := gomock.NewController(t)
 
-	r := &room.Room{ID: uuid.New()}
+	r := &room.Room{UUID: uuid.New()}
 
 	pub1 := &pubmessage.PublishMessage{
 		SendFrom: 1,

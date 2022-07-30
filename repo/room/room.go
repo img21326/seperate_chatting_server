@@ -19,12 +19,12 @@ func NewRoomRepo(db *gorm.DB) RoomRepoInterface {
 }
 
 func (repo *RoomRepo) Create(ctx context.Context, room *room.Room) (err error) {
-	room.ID = uuid.New()
+	room.UUID = uuid.New()
 	return repo.DB.WithContext(ctx).Create(room).Error
 }
 
 func (repo *RoomRepo) Close(ctx context.Context, roomId uuid.UUID) error {
-	return repo.DB.WithContext(ctx).Model(&room.Room{}).Where("id = ?", roomId).Update("close", true).Error
+	return repo.DB.WithContext(ctx).Model(&room.Room{}).Where("UUID = ?", roomId).Update("close", true).Error
 }
 
 func (repo *RoomRepo) FindByUserId(ctx context.Context, userId uint) (room *room.Room, err error) {

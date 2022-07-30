@@ -117,7 +117,7 @@ func TestPairSuccess(t *testing.T) {
 	roomRepo := mock.NewMockRoomRepoInterface(c)
 
 	room := room.Room{
-		ID:      uuid.New(),
+		UUID:    uuid.New(),
 		UserId1: 1,
 		UserId2: 2,
 	}

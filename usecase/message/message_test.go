@@ -30,30 +30,30 @@ func TestLastByUserID(t *testing.T) {
 	r := room.Room{
 		UserId1: 1,
 		UserId2: 2,
-		ID:      uuid.New(),
+		UUID:    uuid.New(),
 		Close:   false,
 	}
 
 	m := []*message.Message{
 		&message.Message{
-			RoomId:  r.ID,
+			RoomId:  r.UUID,
 			UserId:  1,
 			Message: "test",
 		},
 		&message.Message{
-			RoomId:  r.ID,
+			RoomId:  r.UUID,
 			UserId:  1,
 			Message: "test",
 		},
 		&message.Message{
-			RoomId:  r.ID,
+			RoomId:  r.UUID,
 			UserId:  1,
 			Message: "test",
 		},
 	}
 
 	roomRepo.EXPECT().FindByUserId(gomock.Any(), uint(1)).Times(1).Return(&r, nil)
-	messageRepo.EXPECT().LastsByRoomID(gomock.Any(), r.ID, 30).Times(1).Return(m, nil)
+	messageRepo.EXPECT().LastsByRoomID(gomock.Any(), r.UUID, 30).Times(1).Return(m, nil)
 	ctx := context.Background()
 	message, err := messageUsecase.LastByUserID(ctx, 1, 30)
 
@@ -74,7 +74,7 @@ func TestLastByMessageID(t *testing.T) {
 	r := room.Room{
 		UserId1: 1,
 		UserId2: 2,
-		ID:      uuid.New(),
+		UUID:    uuid.New(),
 		Close:   false,
 	}
 
@@ -85,19 +85,19 @@ func TestLastByMessageID(t *testing.T) {
 	}
 	m := []*message.Message{
 		&message.Message{
-			RoomId:  r.ID,
+			RoomId:  r.UUID,
 			UserId:  1,
 			Message: "test",
 			Time:    ts[0],
 		},
 		&message.Message{
-			RoomId:  r.ID,
+			RoomId:  r.UUID,
 			UserId:  1,
 			Message: "test",
 			Time:    ts[1],
 		},
 		&message.Message{
-			RoomId:  r.ID,
+			RoomId:  r.UUID,
 			UserId:  1,
 			Message: "test",
 			Time:    ts[2],
@@ -106,7 +106,7 @@ func TestLastByMessageID(t *testing.T) {
 
 	roomRepo.EXPECT().FindByUserId(gomock.Any(), uint(1)).Times(1).Return(&r, nil)
 	messageRepo.EXPECT().GetByID(gomock.Any(), uint(3)).Times(1).Return(m[2], nil)
-	messageRepo.EXPECT().LastsByTime(gomock.Any(), r.ID, m[2].Time, 3).Times(1).Return(m, nil)
+	messageRepo.EXPECT().LastsByTime(gomock.Any(), r.UUID, m[2].Time, 3).Times(1).Return(m, nil)
 	ctx := context.Background()
 	message, err := messageUsecase.LastByMessageID(ctx, 1, 3, 3)
 

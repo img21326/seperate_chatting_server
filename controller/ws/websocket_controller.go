@@ -100,7 +100,7 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 
 	if room != nil {
 		log.Printf("new ws connection: %v in room %v", user.UUID, room.ID)
-		client.RoomId = room.ID
+		client.RoomId = room.UUID
 		if room.UserId1 == client.User.ID {
 			client.PairId = room.UserId2
 		} else {

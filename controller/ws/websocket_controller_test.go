@@ -70,7 +70,7 @@ func TestWithInRoom(t *testing.T) {
 	usr.ID = 1
 	authUsecase.EXPECT().VerifyToken("1").Return(&usr, nil)
 	ro := &room.Room{
-		ID:      uuid.New(),
+		UUID:    uuid.New(),
 		UserId1: 1,
 		UserId2: 2,
 		Close:   false,

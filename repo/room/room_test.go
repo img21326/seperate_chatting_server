@@ -33,7 +33,7 @@ func TestCreate(t *testing.T) {
 	roomRepo.Create(ctx, &r)
 
 	var getRoom room.Room
-	roomRepo.DB.Where(&room.Room{ID: r.ID}).First(&getRoom)
+	roomRepo.DB.Where(&room.Room{UUID: r.UUID}).First(&getRoom)
 	assert.Equal(t, getRoom.UserId1, uint(1))
 	assert.Equal(t, getRoom.UserId2, uint(2))
 	assert.Equal(t, getRoom.Close, false)
@@ -50,9 +50,9 @@ func TestClose(t *testing.T) {
 		UserId2: 2,
 	}
 	roomRepo.Create(ctx, &r)
-	roomRepo.Close(ctx, r.ID)
+	roomRepo.Close(ctx, r.UUID)
 	var getRoom room.Room
-	roomRepo.DB.Where(&room.Room{ID: r.ID}).First(&getRoom)
+	roomRepo.DB.Where(&room.Room{UUID: r.UUID}).First(&getRoom)
 	assert.Equal(t, getRoom.Close, true)
 }
 

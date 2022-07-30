@@ -19,7 +19,7 @@ func TestFindRoomByUserId(t *testing.T) {
 	r := room.Room{
 		UserId1: 1,
 		UserId2: 2,
-		ID:      uuid.New(),
+		UUID:    uuid.New(),
 		Close:   false,
 	}
 	roomRepo.EXPECT().FindByUserId(gomock.Any(), uint(1)).Times(1).Return(&r, nil)
@@ -39,7 +39,7 @@ func TestFindRoomByUserIdClosed(t *testing.T) {
 	r := room.Room{
 		UserId1: 1,
 		UserId2: 2,
-		ID:      uuid.New(),
+		UUID:    uuid.New(),
 		Close:   true,
 	}
 	roomRepo.EXPECT().FindByUserId(gomock.Any(), uint(1)).Times(1).Return(&r, nil)

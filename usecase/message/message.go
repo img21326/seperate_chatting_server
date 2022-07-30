@@ -38,7 +38,7 @@ func (u *MessageUsecase) LastByUserID(ctx context.Context, userID uint, c int) (
 	if err != nil {
 		return nil, err
 	}
-	messages, err = u.MessageRepo.LastsByRoomID(ctx, room.ID, c)
+	messages, err = u.MessageRepo.LastsByRoomID(ctx, room.UUID, c)
 	return
 }
 
