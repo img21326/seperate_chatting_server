@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/glebarez/sqlite"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/img21326/fb_chat/structure/room"
@@ -69,6 +70,34 @@ func TestFindByUserId(t *testing.T) {
 	roomRepo.Create(ctx, &r)
 	getRoom, err := roomRepo.FindByUserId(ctx, 1)
 	assert.Equal(t, getRoom.ID, r.ID)
+	assert.Nil(t, err)
+}
+
+func TestFindByUserIdWithClosed(t *testing.T) {
+	db := initDB()
+	roomRepo := &RoomRepo{
+		DB: db,
+	}
+	ctx := context.Background()
+	r := []*room.Room{
+		&room.Room{
+			UUID:    uuid.New(),
+			UserId1: 1,
+			UserId2: 2,
+			Close:   true,
+		},
+		&room.Room{
+			UUID:    uuid.New(),
+			UserId1: 1,
+			UserId2: 3,
+			Close:   false,
+		},
+	}
+
+	db.Create(&r)
+	getRoom, err := roomRepo.FindByUserId(ctx, 1)
+	assert.Equal(t, getRoom.UUID, r[1].UUID)
+	assert.Equal(t, getRoom.Close, false)
 	assert.Nil(t, err)
 }
 

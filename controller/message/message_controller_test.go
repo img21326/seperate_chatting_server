@@ -78,14 +78,14 @@ func TestGetHistoryByUserID(t *testing.T) {
 		Message []*ModelMessage.Message `json:"messages"`
 	}
 	jsonMsg, err := json.Marshal(&Res{Message: msgs})
+	if err != nil {
+		t.Errorf("marsh json err: %v", err)
+	}
 
 	req, _ := http.NewRequest("GET", "/history", nil)
 	r.ServeHTTP(w, req)
 
 	body := w.Body.Bytes()
-	if err != nil {
-		t.Errorf("read body err: %v", err)
-	}
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, jsonMsg, body)

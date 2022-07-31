@@ -28,7 +28,11 @@ func (repo *RoomRepo) Close(ctx context.Context, roomId uuid.UUID) error {
 }
 
 func (repo *RoomRepo) FindByUserId(ctx context.Context, userId uint) (room *room.Room, err error) {
-	if err := repo.DB.WithContext(ctx).Order("`rooms`.`created_at` desc").Where("user_id1 = ?", userId).Or("user_id2 = ?", userId).First(&room).Error; err != nil {
+	if err := repo.DB.WithContext(ctx).Order("`rooms`.`created_at` desc").
+		Where(repo.DB.Where("user_id1 = ?", userId).Or("user_id2 = ?", userId)).
+		Where("close = ?", false).
+		First(&room).
+		Error; err != nil {
 		return nil, err
 	}
 	return
