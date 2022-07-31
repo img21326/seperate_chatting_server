@@ -2,7 +2,7 @@ package message
 
 import (
 	"context"
-	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -10,6 +10,8 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/google/uuid"
+	"github.com/img21326/fb_chat/helper"
+	"github.com/img21326/fb_chat/structure/message"
 	ModelMessage "github.com/img21326/fb_chat/structure/message"
 	"github.com/stretchr/testify/assert"
 )
@@ -132,49 +134,51 @@ func TestLastsByTime(t *testing.T) {
 		DB: db,
 	}
 	ctx := context.Background()
-	roomID := uuid.New()
-	var ts []time.Time
-	for index, _ := range []int{1, 2, 3, 4, 5} {
-		t, _ := time.Parse("2006-01-02 15:04:05", fmt.Sprintf("2022-01-01 0%v:0%v:0%v", index, index, index))
-		ts = append(ts, t)
+
+	room1 := uuid.New()
+	room2 := uuid.New()
+
+	var fakeMessages []*message.Message
+	for i := 1; i <= 150; i++ {
+
+		usrID := uint(rand.Intn(2))
+		var roomUID uuid.UUID
+		if rand.Intn(2) == 1 {
+			roomUID = room1
+		} else {
+			roomUID = room2
+		}
+		fakeMessages = append(fakeMessages, &message.Message{
+			RoomId:  roomUID,
+			UserId:  usrID,
+			Message: helper.RandString(15),
+			Time:    time.Now().Add(time.Hour * time.Duration(i)),
+		})
 	}
-	msgs := []*ModelMessage.Message{
-		&ModelMessage.Message{
-			RoomId:  roomID,
-			UserId:  1,
-			Message: "test",
-			Time:    ts[0],
-		},
-		&ModelMessage.Message{
-			RoomId:  roomID,
-			UserId:  1,
-			Message: "test",
-			Time:    ts[1],
-		},
-		&ModelMessage.Message{
-			RoomId:  roomID,
-			UserId:  1,
-			Message: "test",
-			Time:    ts[2],
-		},
-		&ModelMessage.Message{
-			RoomId:  roomID,
-			UserId:  1,
-			Message: "test",
-			Time:    ts[3],
-		},
-		&ModelMessage.Message{
-			RoomId:  roomID,
-			UserId:  1,
-			Message: "test",
-			Time:    ts[4],
-		},
-	}
-	for _, m := range msgs {
-		messageRepo.Save(ctx, m)
+	db.Create(&fakeMessages)
+
+	var resultMessageID2 []uint
+	for i := len(fakeMessages) - 1; i >= 0; i-- {
+		mes := fakeMessages[i]
+		if mes.Time.After(fakeMessages[20].Time) {
+			continue
+		}
+		if mes == fakeMessages[20] {
+			continue
+		}
+		if mes.RoomId == room1 {
+			resultMessageID2 = append(resultMessageID2, mes.ID)
+		}
+		if len(resultMessageID2) >= 20 {
+			break
+		}
 	}
 
-	getMsg, err := messageRepo.LastsByTime(ctx, roomID, ts[3], 5)
-	assert.Equal(t, len(getMsg), 3)
+	getMsg, err := messageRepo.LastsByTime(ctx, room1, fakeMessages[20].Time, 20)
+	var getMessageID []uint
+	for _, mes := range getMsg {
+		getMessageID = append(getMessageID, mes.ID)
+	}
+	assert.Equal(t, resultMessageID2, getMessageID)
 	assert.Nil(t, err)
 }

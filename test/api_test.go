@@ -50,7 +50,6 @@ func TestRegisterAPI(t *testing.T) {
 }
 
 func TestMessageHistoryAPI(t *testing.T) {
-
 	fakeUser := []*user.User{
 		&user.User{
 			UUID:   uuid.New(),
@@ -127,8 +126,9 @@ func TestMessageHistoryAPI(t *testing.T) {
 	assert.NotNil(t, a.Token)
 
 	/// refresh token end
+
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", URL+fmt.Sprintf(":%v", Port)+fmt.Sprintf("/auth/history"), nil)
+	req, err := http.NewRequest("GET", URL+fmt.Sprintf(":%v", Port)+"/auth/history", nil)
 	assert.Nil(t, err)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", a.Token))
 	res, err = client.Do(req)
@@ -159,4 +159,37 @@ func TestMessageHistoryAPI(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, getMessageID, resultMessageID)
+	// basic end
+	randi := randintRange(len(fakeMessages)-1, 0)
+	req, err = http.NewRequest("GET", URL+fmt.Sprintf(":%v", Port)+fmt.Sprintf("/auth/history?last_message_id=%v", fakeMessages[randi].ID), nil)
+	assert.Nil(t, err)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", a.Token))
+	res, err = client.Do(req)
+	assert.Nil(t, err)
+	body, err = ioutil.ReadAll(res.Body)
+	assert.Nil(t, err)
+
+	err = json.Unmarshal(body, &r)
+
+	var resultMessageID2 []uint
+	for i := len(fakeMessages) - 1; i >= 0; i-- {
+		mes := fakeMessages[i]
+		if mes.Time.After(fakeMessages[randi].Time) {
+			continue
+		}
+		if mes.RoomId == fakeRoom[1].UUID {
+			resultMessageID2 = append(resultMessageID2, mes.ID)
+		}
+		if len(resultMessageID2) >= 20 {
+			break
+		}
+	}
+	var getMessageID2 []uint
+	for _, mes := range r.Messages {
+		getMessageID2 = append(getMessageID2, mes.ID)
+	}
+
+	assert.Nil(t, err)
+	assert.Equal(t, resultMessageID2, getMessageID2)
+	// with params out
 }

@@ -24,7 +24,6 @@ func NewMessageController(e gin.IRoutes, messageUsecase message.MessageUsecaseIn
 func (c *MessageController) GetHistory(ctx *gin.Context) {
 	user := ctx.MustGet("user").(*user.User)
 	lastMessageIdstr, ok := ctx.GetQuery("last_message_id")
-	lastMessageId, _ := strconv.Atoi(lastMessageIdstr)
 	if !ok {
 		messages, err := c.MessageUsecase.LastByUserID(ctx, user.ID, 20)
 		if err != nil {
@@ -37,6 +36,7 @@ func (c *MessageController) GetHistory(ctx *gin.Context) {
 			"messages": messages,
 		})
 	} else {
+		lastMessageId, _ := strconv.Atoi(lastMessageIdstr)
 		messages, err := c.MessageUsecase.LastByMessageID(ctx, user.ID, uint(lastMessageId), 20)
 		if err != nil {
 			ctx.JSON(500, gin.H{
