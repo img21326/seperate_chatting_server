@@ -81,3 +81,30 @@ func TestRegisterWithGenderError(t *testing.T) {
 	assert.Equal(t, 410, w.Code)
 	assert.Equal(t, `{"error":"gender should be male or female"}`, string(body[:]))
 }
+
+func TestRefresh(t *testing.T) {
+	c := gomock.NewController(t)
+
+	uid, _ := uuid.Parse("1cad3ac9-b72f-4b96-8c20-0acb2debec49")
+	u := &user.User{
+		UUID: uid,
+	}
+
+	authUsecase := mock.NewMockAuthUsecaseInterFace(c)
+	authUsecase.EXPECT().GenerateToken(gomock.Any(), u).DoAndReturn(func(ctx context.Context, u *user.User) (string, error) {
+		return "abc", nil
+	})
+
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+
+	NewLoginController(r, authUsecase)
+
+	req, _ := http.NewRequest("GET", "/refresh?uuid=1cad3ac9-b72f-4b96-8c20-0acb2debec49", nil)
+	r.ServeHTTP(w, req)
+
+	body := w.Body.Bytes()
+
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, `{"token":"abc"}`, string(body[:]))
+}

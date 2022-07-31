@@ -1,9 +1,9 @@
 package login
 
 import (
-	"fmt"
 	"log"
 
+	"github.com/google/uuid"
 	"github.com/img21326/fb_chat/structure/user"
 
 	"github.com/gin-gonic/gin"
@@ -22,6 +22,7 @@ func NewLoginController(e gin.IRoutes, authUsecase auth.AuthUsecaseInterFace) {
 	// e.GET("/login", controller.Login)
 	// e.GET("/oauth", controller.Redirect)
 	e.GET("/register", controller.Register)
+	e.GET("/refresh", controller.Refresh)
 }
 
 func (c *LoginController) Register(ctx *gin.Context) {
@@ -48,13 +49,47 @@ func (c *LoginController) Register(ctx *gin.Context) {
 	if err != nil {
 		log.Printf("[LoginController] Register Generate token err: %v", err)
 		ctx.JSON(500, gin.H{
-			"error": fmt.Sprint("server generate token error"),
+			"error": "server generate token error",
 		})
 		return
 	}
 	ctx.JSON(200, gin.H{
 		"token": token,
 		"uuid":  newUser.UUID,
+	})
+	return
+}
+
+func (c *LoginController) Refresh(ctx *gin.Context) {
+	uuidStr, ok := ctx.GetQuery("uuid")
+	if !ok {
+		log.Print("[LoginController] Refresh without uuid")
+		ctx.JSON(410, gin.H{
+			"error": "should add params with uuid",
+		})
+		return
+	}
+	uuid, err := uuid.Parse(uuidStr)
+	if err != nil {
+		log.Printf("[LoginController] Refresh Parse uuid err: %v", err)
+		ctx.JSON(500, gin.H{
+			"error": "server Parse uuid error",
+		})
+		return
+	}
+	user := &user.User{
+		UUID: uuid,
+	}
+	token, err := c.AuthUsecase.GenerateToken(ctx, user)
+	if err != nil {
+		log.Printf("[LoginController] Register Generate token err: %v", err)
+		ctx.JSON(500, gin.H{
+			"error": "server generate token error",
+		})
+		return
+	}
+	ctx.JSON(200, gin.H{
+		"token": token,
 	})
 	return
 }
