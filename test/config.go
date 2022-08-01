@@ -17,3 +17,4 @@ var RedisOption = &redis.Options{
 var DB = server.InitDB(GormDialector)
 var Redis = server.InitRedis(RedisOption)
 var URL = "http://localhost"
+var WSURL = "ws://localhost"
