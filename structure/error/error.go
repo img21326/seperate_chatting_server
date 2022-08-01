@@ -8,4 +8,5 @@ var (
 	PairNotSuccess    = errors.New("PairNotSuccess")
 	ClientNotInHost   = errors.New("ClientNotInHost")
 	QueueSmallerThan1 = errors.New("QueueSmallerThan1")
+	UserNotInThisRoom = errors.New("UserNotInThisRoom")
 )

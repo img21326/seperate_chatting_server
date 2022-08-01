@@ -10,6 +10,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/img21326/fb_chat/mock"
+	errorStruct "github.com/img21326/fb_chat/structure/error"
 	"github.com/img21326/fb_chat/structure/message"
 	pubmessage "github.com/img21326/fb_chat/structure/pub_message"
 	"github.com/img21326/fb_chat/structure/room"
@@ -59,6 +60,31 @@ func TestLastByUserID(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, message, m)
+}
+
+func TestLastByUserIDWithRoomClosed(t *testing.T) {
+	c := gomock.NewController(t)
+	roomRepo := mock.NewMockRoomRepoInterface(c)
+	messageRepo := mock.NewMockMessageRepoInterface(c)
+
+	messageUsecase := MessageUsecase{
+		RoomRepo:    roomRepo,
+		MessageRepo: messageRepo,
+	}
+
+	r := room.Room{
+		UserId1: 1,
+		UserId2: 2,
+		UUID:    uuid.New(),
+		Close:   true,
+	}
+
+	roomRepo.EXPECT().FindByUserId(gomock.Any(), uint(1)).Times(1).Return(&r, nil)
+	ctx := context.Background()
+	message, err := messageUsecase.LastByUserID(ctx, 1, 30)
+
+	assert.Nil(t, message)
+	assert.Equal(t, err, errorStruct.RoomIsClose)
 }
 
 func TestLastByMessageID(t *testing.T) {
@@ -112,6 +138,110 @@ func TestLastByMessageID(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, message, m)
+}
+
+func TestLastByMessageIDWithUserNotInRoom(t *testing.T) {
+	c := gomock.NewController(t)
+	roomRepo := mock.NewMockRoomRepoInterface(c)
+	messageRepo := mock.NewMockMessageRepoInterface(c)
+
+	messageUsecase := MessageUsecase{
+		RoomRepo:    roomRepo,
+		MessageRepo: messageRepo,
+	}
+
+	r := room.Room{
+		UserId1: 3,
+		UserId2: 4,
+		UUID:    uuid.New(),
+		Close:   false,
+	}
+
+	var ts []time.Time
+	for index, _ := range []int{1, 2, 3, 4, 5} {
+		t, _ := time.Parse("2006-01-02 15:04:05", fmt.Sprintf("2022-01-01 0%v:0%v:0%v", index, index, index))
+		ts = append(ts, t)
+	}
+	m := []*message.Message{
+		&message.Message{
+			RoomId:  r.UUID,
+			UserId:  1,
+			Message: "test",
+			Time:    ts[0],
+		},
+		&message.Message{
+			RoomId:  r.UUID,
+			UserId:  1,
+			Message: "test",
+			Time:    ts[1],
+		},
+		&message.Message{
+			RoomId:  r.UUID,
+			UserId:  1,
+			Message: "test",
+			Time:    ts[2],
+		},
+	}
+
+	roomRepo.EXPECT().FindByUserId(gomock.Any(), uint(1)).Times(1).Return(&r, nil)
+	messageRepo.EXPECT().GetByID(gomock.Any(), uint(3)).Times(1).Return(m[2], nil)
+	ctx := context.Background()
+	message, err := messageUsecase.LastByMessageID(ctx, 1, 3, 3)
+
+	assert.Nil(t, message)
+	assert.Equal(t, err, errorStruct.UserNotInThisRoom)
+}
+
+func TestLastByMessageIDWithRoomIsClosed(t *testing.T) {
+	c := gomock.NewController(t)
+	roomRepo := mock.NewMockRoomRepoInterface(c)
+	messageRepo := mock.NewMockMessageRepoInterface(c)
+
+	messageUsecase := MessageUsecase{
+		RoomRepo:    roomRepo,
+		MessageRepo: messageRepo,
+	}
+
+	r := room.Room{
+		UserId1: 1,
+		UserId2: 2,
+		UUID:    uuid.New(),
+		Close:   true,
+	}
+
+	var ts []time.Time
+	for index, _ := range []int{1, 2, 3, 4, 5} {
+		t, _ := time.Parse("2006-01-02 15:04:05", fmt.Sprintf("2022-01-01 0%v:0%v:0%v", index, index, index))
+		ts = append(ts, t)
+	}
+	m := []*message.Message{
+		&message.Message{
+			RoomId:  r.UUID,
+			UserId:  1,
+			Message: "test",
+			Time:    ts[0],
+		},
+		&message.Message{
+			RoomId:  r.UUID,
+			UserId:  1,
+			Message: "test",
+			Time:    ts[1],
+		},
+		&message.Message{
+			RoomId:  r.UUID,
+			UserId:  1,
+			Message: "test",
+			Time:    ts[2],
+		},
+	}
+
+	roomRepo.EXPECT().FindByUserId(gomock.Any(), uint(1)).Times(1).Return(&r, nil)
+	messageRepo.EXPECT().GetByID(gomock.Any(), uint(3)).Times(1).Return(m[2], nil)
+	ctx := context.Background()
+	message, err := messageUsecase.LastByMessageID(ctx, 1, 3, 3)
+
+	assert.Nil(t, message)
+	assert.Equal(t, err, errorStruct.RoomIsClose)
 }
 
 func TestSave(t *testing.T) {

@@ -3,7 +3,6 @@ package message
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"log"
 
 	"github.com/google/uuid"
@@ -38,6 +37,9 @@ func (u *MessageUsecase) LastByUserID(ctx context.Context, userID uint, c int) (
 	if err != nil {
 		return nil, err
 	}
+	if room.Close {
+		return nil, errorStruct.RoomIsClose
+	}
 	messages, err = u.MessageRepo.LastsByRoomID(ctx, room.UUID, c)
 	return
 }
@@ -52,7 +54,10 @@ func (u *MessageUsecase) LastByMessageID(ctx context.Context, userID uint, lastM
 		return nil, err
 	}
 	if room.UserId1 != userID && room.UserId2 != userID {
-		return nil, errors.New("UserNotInThisRoom")
+		return nil, errorStruct.UserNotInThisRoom
+	}
+	if room.Close {
+		return nil, errorStruct.RoomIsClose
 	}
 	messages, err = u.MessageRepo.LastsByTime(ctx, lastMessage.RoomId, lastMessage.Time, c)
 	return

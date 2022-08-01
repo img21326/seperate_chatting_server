@@ -203,4 +203,6 @@ func TestMessageHistoryAPI(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, resultMessageID2, getMessageID2)
 	// with params out
+	// test not in room
+
 }
