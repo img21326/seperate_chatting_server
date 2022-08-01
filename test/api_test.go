@@ -160,8 +160,16 @@ func TestMessageHistoryAPI(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, getMessageID, resultMessageID)
 	// basic end
-	randi := randintRange(len(fakeMessages)-1, 0)
-	req, err = http.NewRequest("GET", URL+fmt.Sprintf(":%v", Port)+fmt.Sprintf("/auth/history?last_message_id=%v", fakeMessages[randi].ID), nil)
+	var randMessageIndex int
+	for {
+		randi := randintRange(len(fakeMessages)-1, 0)
+		if fakeMessages[randi].RoomId == fakeRoom[1].UUID {
+			randMessageIndex = randi
+			break
+		}
+	}
+
+	req, err = http.NewRequest("GET", URL+fmt.Sprintf(":%v", Port)+fmt.Sprintf("/auth/history?last_message_id=%v", fakeMessages[randMessageIndex].ID), nil)
 	assert.Nil(t, err)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", a.Token))
 	res, err = client.Do(req)
@@ -174,7 +182,10 @@ func TestMessageHistoryAPI(t *testing.T) {
 	var resultMessageID2 []uint
 	for i := len(fakeMessages) - 1; i >= 0; i-- {
 		mes := fakeMessages[i]
-		if mes.Time.After(fakeMessages[randi].Time) {
+		if mes.Time.After(fakeMessages[randMessageIndex].Time) {
+			continue
+		}
+		if mes.ID == fakeMessages[randMessageIndex].ID {
 			continue
 		}
 		if mes.RoomId == fakeRoom[1].UUID {
