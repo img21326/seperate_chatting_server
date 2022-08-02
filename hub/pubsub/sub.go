@@ -23,14 +23,14 @@ func (h *SubHub) Run(ctx context.Context, topic string, ReceiveMessageChan chan 
 	log.Printf("[Sub] start subscribe %v", topic)
 	subscriber := h.PubUsecase.Subscribe(ctx, topic)
 	for {
-		msg, err := subscriber.ReceiveMessage(ctx)
+		msg, err := subscriber()
 		log.Printf("[Sub] get message: %v", msg)
 		if err != nil {
 			log.Printf("[Sub] sub message receive error: %v", err)
 		}
 		var redisMessage pubmessage.PublishMessage
 
-		if err := json.Unmarshal([]byte(msg.Payload), &redisMessage); err != nil {
+		if err := json.Unmarshal(msg, &redisMessage); err != nil {
 			log.Printf("pubsub message json load error: %v", err)
 		}
 		ReceiveMessageChan <- &redisMessage

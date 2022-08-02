@@ -19,7 +19,7 @@ func NewRedisSubUsecase(pubSubRepo repo.PubSubRepoInterface) SubMessageUsecaseIn
 	}
 }
 
-func (u *RedisSubUsecase) Subscribe(ctx context.Context, topic string) repo.SubscribeInterface {
+func (u *RedisSubUsecase) Subscribe(ctx context.Context, topic string) func() ([]byte, error) {
 	subscriber := u.PubSubRepo.Sub(ctx, topic)
 	return subscriber
 }
