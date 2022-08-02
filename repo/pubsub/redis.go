@@ -20,7 +20,7 @@ func NewPubSubRepo(redis *redis.Client) PubSubRepoInterface {
 func (repo *PubSubRepo) Sub(ctx context.Context, topic string) func() ([]byte, error) {
 	PubSub := repo.Redis.Subscribe(ctx, topic)
 	ReturnChan := make(chan *pub.ReceiveMessage)
-	go func() {
+	go func(ctx context.Context, PubSub *redis.PubSub, ReturnChan chan *pub.ReceiveMessage) {
 		for {
 			select {
 			case <-ctx.Done():
@@ -28,11 +28,17 @@ func (repo *PubSubRepo) Sub(ctx context.Context, topic string) func() ([]byte, e
 				return
 			default:
 				msg, err := PubSub.ReceiveMessage(ctx)
-				RM := &pub.ReceiveMessage{Payload: []byte(msg.Payload), Error: err}
+				RM := &pub.ReceiveMessage{}
+				if err != nil {
+					RM.Error = err
+				} else {
+					RM.Payload = []byte(msg.Payload)
+					RM.Error = nil
+				}
 				ReturnChan <- RM
 			}
 		}
-	}()
+	}(ctx, PubSub, ReturnChan)
 	return func() ([]byte, error) {
 		rm := <-ReturnChan
 		return rm.Payload, rm.Error
