@@ -19,33 +19,16 @@ func NewRedisSubUsecase(pubSubRepo repo.PubSubRepoInterface) SubMessageUsecaseIn
 	}
 }
 
-func (u *RedisSubUsecase) Subscribe(ctx context.Context, topic string, processMessage func(*pubmessage.PublishMessage)) {
-	log.Printf("[Sub] start subscribe %v", topic)
+func (u *RedisSubUsecase) Subscribe(ctx context.Context, topic string) repo.SubscribeInterface {
 	subscriber := u.PubSubRepo.Sub(ctx, topic)
-	for {
-		msg, err := subscriber.ReceiveMessage(ctx)
-		log.Printf("[Sub] get message: %v", msg)
-		if err != nil {
-			log.Printf("[Sub] sub message receive error: %v", err)
-		}
-		var redisMessage pubmessage.PublishMessage
-
-		if err := json.Unmarshal([]byte(msg.Payload), &redisMessage); err != nil {
-			log.Printf("pubsub message json load error: %v", err)
-		}
-		processMessage(&redisMessage)
-	}
+	return subscriber
 }
 
-func (u *RedisSubUsecase) Publish(ctx context.Context, topic string, MessageChan <-chan *pubmessage.PublishMessage) {
-	log.Printf("[Pub] start publish %v", topic)
-	for {
-		message := <-MessageChan
-		log.Printf("[Pub] send message: %v", message)
-		jsonMessage, err := json.Marshal(message)
-		if err != nil {
-			log.Printf("pub message convert json error: %v", err)
-		}
-		u.PubSubRepo.Pub(ctx, topic, []byte(jsonMessage))
+func (u *RedisSubUsecase) Publish(ctx context.Context, topic string, message *pubmessage.PublishMessage) {
+	log.Printf("[PublishUsecase] send message: %v", message)
+	jsonMessage, err := json.Marshal(message)
+	if err != nil {
+		log.Printf("pub message convert json error: %v", err)
 	}
+	u.PubSubRepo.Pub(ctx, topic, []byte(jsonMessage))
 }

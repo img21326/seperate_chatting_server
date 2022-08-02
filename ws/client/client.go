@@ -105,25 +105,29 @@ func (c *Client) ReadPump() {
 func (c *Client) WritePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
+		ticker.Stop()
+		close(c.Send)
 		time.Sleep(3 * time.Second)
 		c.Conn.Close()
 	}()
 	for {
 		select {
 		case <-c.Ctx.Done():
-			ticker.Stop()
-			close(c.Send)
 			return
 		case message, ok := <-c.Send:
+			log.Printf("[websocket client] get send message: %v", message)
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The hub closed the channel.
 				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				c.CtxCancel()
 				return
 			}
 
 			w, err := c.Conn.NextWriter(websocket.TextMessage)
 			if err != nil {
+				log.Printf("[websocket client] create nextWriter err: %v", err)
+				c.CtxCancel()
 				return
 			}
 			w.Write(message)
@@ -135,11 +139,15 @@ func (c *Client) WritePump() {
 			}
 
 			if err := w.Close(); err != nil {
+				log.Printf("[websocket client] close nextWriter err: %v", err)
+				c.CtxCancel()
 				return
 			}
 		case <-ticker.C:
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				log.Printf("[websocket client] send ping err: %v", err)
+				c.CtxCancel()
 				return
 			}
 		}

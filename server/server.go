@@ -1,7 +1,13 @@
 package server
 
 import (
+	"context"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -40,6 +46,10 @@ func initRedisRepo(db *gorm.DB, redis *redis.Client) (messageRepo RepoMessage.Me
 }
 
 func StartUpRedisServer(db *gorm.DB, redis *redis.Client, port string) {
+	ctx, cancel := context.WithCancel(context.Background())
+	shutdownChan := make(chan os.Signal, 1)
+	signal.Notify(shutdownChan, syscall.SIGINT, syscall.SIGTERM)
+
 	messageRepo, localOnlineRepo, onlineRepo, roomRepo, userRepo, waitRepo, pubSubRepo := initRedisRepo(db, redis)
 	jwtConfig := auth.JwtConfig{
 		Key:            []byte("secret168"),
@@ -52,16 +62,36 @@ func StartUpRedisServer(db *gorm.DB, redis *redis.Client, port string) {
 	pairUsecase := pair.NewRedisSubUsecase(waitRepo, onlineRepo, roomRepo)
 	messageUsecase := message.NewMessageUsecase(messageRepo, roomRepo, localOnlineRepo)
 
-	pubChan, queueChan := hub.StartHub(subUsecase, pairUsecase, messageUsecase, wsUsecase)
+	pubChan, queueChan := hub.StartHub(ctx, subUsecase, pairUsecase, messageUsecase, wsUsecase)
 
-	server := gin.Default()
+	handler := gin.Default()
 	jwtMiddleware := jwt.NewJWTValidMiddleware(authUsecase)
-	jwtRoute := server.Group("/auth")
+	jwtRoute := handler.Group("/auth")
 	jwtRoute.Use(jwtMiddleware.ValidHeaderToken)
 
-	ControllerLogin.NewLoginController(server, authUsecase)
+	ControllerLogin.NewLoginController(handler, authUsecase)
 	ControllerMessage.NewMessageController(jwtRoute, messageUsecase)
-	ControllerWS.NewWebsocketController(server, wsUsecase, authUsecase, pubChan, queueChan)
+	ControllerWS.NewWebsocketController(handler, wsUsecase, authUsecase, pubChan, queueChan)
 
-	server.Run(fmt.Sprintf(":%v", port))
+	srv := &http.Server{
+		Addr:    fmt.Sprintf(":%v", port),
+		Handler: handler,
+	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %s\n", err)
+		}
+	}()
+	<-shutdownChan
+	cancel()
+
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal("Server Shutdown:", err)
+	}
+	<-ctx.Done()
+	log.Println("timeout of 10 seconds.")
+	log.Println("Server exiting")
 }

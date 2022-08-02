@@ -2,6 +2,8 @@ package pubsub
 
 import (
 	"context"
+	"encoding/json"
+	"log"
 
 	pubmessage "github.com/img21326/fb_chat/structure/pub_message"
 	"github.com/img21326/fb_chat/usecase/pubsub"
@@ -17,8 +19,20 @@ func NewSubHub(pubUsecase pubsub.SubMessageUsecaseInterface) *SubHub {
 	}
 }
 
-func (h *SubHub) Run(ctx context.Context, topic string, MessageChan chan<- *pubmessage.PublishMessage) {
-	h.PubUsecase.Subscribe(ctx, topic, func(pm *pubmessage.PublishMessage) {
-		MessageChan <- pm
-	})
+func (h *SubHub) Run(ctx context.Context, topic string, ReceiveMessageChan chan *pubmessage.PublishMessage) {
+	log.Printf("[Sub] start subscribe %v", topic)
+	subscriber := h.PubUsecase.Subscribe(ctx, topic)
+	for {
+		msg, err := subscriber.ReceiveMessage(ctx)
+		log.Printf("[Sub] get message: %v", msg)
+		if err != nil {
+			log.Printf("[Sub] sub message receive error: %v", err)
+		}
+		var redisMessage pubmessage.PublishMessage
+
+		if err := json.Unmarshal([]byte(msg.Payload), &redisMessage); err != nil {
+			log.Printf("pubsub message json load error: %v", err)
+		}
+		ReceiveMessageChan <- &redisMessage
+	}
 }
