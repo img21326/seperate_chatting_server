@@ -32,7 +32,7 @@ func NewMessageHub(messageUsecase MessageUsecase.MessageUsecaseInterface,
 }
 
 func (h *MessageHub) SaveMessage(mes *message.Message) {
-	log.Printf("[MessageUsecase] save message: %+v", mes)
+	log.Printf("[MessageHub] save message: %+v", mes)
 	c := context.Background()
 	h.MessageUsecase.Save(c, mes)
 }
@@ -75,12 +75,12 @@ func (h *MessageHub) HandleMessage(receiveMessage *pubmessage.PublishMessage) {
 	}
 }
 
-func (h *MessageHub) Run(ctx context.Context) {
+func (h *MessageHub) Run(ctx context.Context, timeOut time.Duration) {
 	log.Printf("[MessageHub] start\n")
 	for {
 		select {
 		case <-ctx.Done():
-			time.Sleep(time.Duration(8 * time.Second))
+			time.Sleep(time.Duration(timeOut))
 			close(h.SaveMessageChan)
 			close(h.ReceiveMessageChan)
 			log.Printf("[MessageHub] close channel\n")

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/go-playground/assert/v2"
 	"github.com/golang/mock/gomock"
@@ -26,12 +27,13 @@ func TestSaveMessage(t *testing.T) {
 		})
 
 	mesHub := MessageHub{
-		SaveMessageChan: make(chan *message.Message, 1),
-		MessageUsecase:  messageUsecase,
+		SaveMessageChan:    make(chan *message.Message, 1),
+		ReceiveMessageChan: make(chan *pubmessage.PublishMessage), // 避免close err
+		MessageUsecase:     messageUsecase,
 	}
 	mesHub.SaveMessageChan <- mes
 
-	mesHub.Run(ctx)
+	mesHub.Run(ctx, 1*time.Second)
 }
 
 func TestReceivePairSuccess(t *testing.T) {
@@ -65,13 +67,14 @@ func TestReceivePairSuccess(t *testing.T) {
 		})
 
 	mesHub := MessageHub{
+		SaveMessageChan:    make(chan *message.Message),
 		ReceiveMessageChan: make(chan *pubmessage.PublishMessage, 2),
 		MessageUsecase:     messageUsecase,
 	}
 	mesHub.ReceiveMessageChan <- mes1
 	mesHub.ReceiveMessageChan <- mes2
 
-	mesHub.Run(ctx)
+	mesHub.Run(ctx, 1*time.Second)
 }
 
 func TestClientOnMessage(t *testing.T) {
@@ -107,7 +110,7 @@ func TestClientOnMessage(t *testing.T) {
 	}
 	mesHub.ReceiveMessageChan <- mes1
 
-	mesHub.Run(ctx)
+	mesHub.Run(ctx, 1*time.Second)
 }
 
 func TestHandleLeaveMessage(t *testing.T) {
@@ -136,9 +139,7 @@ func TestHandleLeaveMessage(t *testing.T) {
 			return nil
 		})
 
-	WSUsecase.EXPECT().UnRegister(gomock.Any(), gomock.Any()).AnyTimes()
-
-	messageUsecase.EXPECT().HandleLeaveMessage(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().DoAndReturn(
+	messageUsecase.EXPECT().HandleLeaveMessage(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).DoAndReturn(
 		func(getSender *client.Client, getReceiver *client.Client, unRegisterFunc func(ctx context.Context, client *client.Client)) error {
 			assert.Equal(t, sender, getSender)
 			assert.Equal(t, receiver, getReceiver)
@@ -154,5 +155,5 @@ func TestHandleLeaveMessage(t *testing.T) {
 	}
 	mesHub.ReceiveMessageChan <- mes1
 
-	mesHub.Run(ctx)
+	mesHub.Run(ctx, 1*time.Second)
 }

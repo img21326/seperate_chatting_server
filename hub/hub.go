@@ -39,7 +39,7 @@ func StartHub(
 
 	go subHub.Run(subCtx, "message", subMessageChan)
 	go pubHub.Run(ctx, "message", pubMessageChan)
-	go messageHub.Run(ctx)
+	go messageHub.Run(ctx, 5*time.Second)
 	go pairHub.Run(ctx)
 
 	// 最後送出的訊息 要收到並處理完
