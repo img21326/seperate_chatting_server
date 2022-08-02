@@ -3,6 +3,7 @@ package pair
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
@@ -106,4 +107,39 @@ func TestPairSuccess(t *testing.T) {
 
 	assert.Equal(t, pub1, <-pairHub.PubMessageChan)
 	assert.Equal(t, pub2, <-pairHub.PubMessageChan)
+}
+
+func TestGracefulShutdown(t *testing.T) {
+	c := gomock.NewController(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	pairUsecase := mock.NewMockPairUsecaseInterface(c)
+
+	pub1 := &pubmessage.PublishMessage{
+		SendFrom: 1,
+		SendTo:   2,
+	}
+	pub2 := &pubmessage.PublishMessage{
+		SendFrom: 2,
+		SendTo:   1,
+	}
+	pairUsecase.EXPECT().PairSuccess(gomock.Any(), gomock.Any()).Times(30).DoAndReturn(
+		func(ctx context.Context, room *room.Room) (*pubmessage.PublishMessage, *pubmessage.PublishMessage, error) {
+			time.Sleep(time.Microsecond * 600)
+			return pub1, pub2, nil
+		})
+
+	pairHub := &PairHub{
+		PairUsecase:      pairUsecase,
+		PubMessageChan:   make(chan *pubmessage.PublishMessage, 60),
+		PairSuccessChan:  make(chan *room.Room, 30),
+		InsertClientChan: make(chan *client.Client),
+	}
+	go pairHub.Run(ctx)
+
+	for i := 1; i <= 30; i++ {
+		pairHub.PairSuccessChan <- &room.Room{}
+	}
+	cancel()
+	time.Sleep(3 * time.Second)
 }

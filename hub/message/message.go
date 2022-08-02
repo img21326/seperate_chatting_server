@@ -84,14 +84,15 @@ func (h *MessageHub) Run(ctx context.Context, timeOut time.Duration) {
 			close(h.SaveMessageChan)
 			close(h.ReceiveMessageChan)
 			log.Printf("[MessageHub] close channel\n")
+			// 關閉server後不再處理相關訊息 只儲存已發送(ask)訊息
 			n := len(h.SaveMessageChan)
 			for i := 0; i < n; i++ {
 				h.SaveMessage(<-h.SaveMessageChan)
 			}
-			n = len(h.ReceiveMessageChan)
-			for i := 0; i < n; i++ {
-				h.HandleMessage(<-h.ReceiveMessageChan)
-			}
+			// n = len(h.ReceiveMessageChan)
+			// for i := 0; i < n; i++ {
+			// 	h.HandleMessage(<-h.ReceiveMessageChan)
+			// }
 			log.Printf("[MessageHub] finished all queue\n")
 			return
 		case mes := <-h.SaveMessageChan:

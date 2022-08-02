@@ -157,3 +157,25 @@ func TestHandleLeaveMessage(t *testing.T) {
 
 	mesHub.Run(ctx, 1*time.Second)
 }
+
+func TestGracefulShutdown(t *testing.T) {
+	c := gomock.NewController(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	messageUsecase := mock.NewMockMessageUsecaseInterface(c)
+	messageUsecase.EXPECT().Save(gomock.Any(), gomock.Any()).Times(30)
+
+	mesHub := MessageHub{
+		SaveMessageChan:    make(chan *message.Message, 30),
+		ReceiveMessageChan: make(chan *pubmessage.PublishMessage),
+		MessageUsecase:     messageUsecase,
+	}
+	go mesHub.Run(ctx, 1*time.Second)
+
+	for i := 1; i <= 30; i++ {
+		mesHub.SaveMessageChan <- &message.Message{ID: uint(i)}
+	}
+	cancel()
+	time.Sleep(3 * time.Second)
+}
