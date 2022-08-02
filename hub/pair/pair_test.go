@@ -95,9 +95,10 @@ func TestPairSuccess(t *testing.T) {
 		})
 
 	pairHub := &PairHub{
-		PairUsecase:     pairUsecase,
-		PubMessageChan:  make(chan *pubmessage.PublishMessage, 2),
-		PairSuccessChan: make(chan *room.Room, 1),
+		PairUsecase:      pairUsecase,
+		PubMessageChan:   make(chan *pubmessage.PublishMessage, 2),
+		PairSuccessChan:  make(chan *room.Room, 1),
+		InsertClientChan: make(chan *client.Client),
 	}
 
 	pairHub.PairSuccessChan <- r
