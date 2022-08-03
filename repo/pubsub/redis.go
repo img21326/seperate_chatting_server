@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/go-redis/redis/v8"
+	errorStruct "github.com/img21326/fb_chat/structure/error"
 	"github.com/img21326/fb_chat/structure/pub"
 )
 
@@ -24,6 +25,8 @@ func (repo *PubSubRepo) Sub(ctx context.Context, topic string) func() ([]byte, e
 		for {
 			select {
 			case <-ctx.Done():
+				RM := &pub.ReceiveMessage{Error: errorStruct.ChannelClosed}
+				ReturnChan <- RM
 				close(ReturnChan)
 				return
 			default:

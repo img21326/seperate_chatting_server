@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/img21326/fb_chat/helper"
+	errorStruct "github.com/img21326/fb_chat/structure/error"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,4 +32,18 @@ func TestPubSub(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, string(msg[:]), "test")
+}
+
+func TestSubShutdown(t *testing.T) {
+	redis := getRedis()
+	repo := PubSubRepo{Redis: redis}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	topic := helper.RandString(5)
+	subFunc := repo.Sub(ctx, topic)
+	cancel()
+	msg, err := subFunc()
+
+	assert.Nil(t, msg)
+	assert.Equal(t, err, errorStruct.ChannelClosed)
 }

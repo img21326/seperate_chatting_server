@@ -9,4 +9,5 @@ var (
 	ClientNotInHost   = errors.New("ClientNotInHost")
 	QueueSmallerThan1 = errors.New("QueueSmallerThan1")
 	UserNotInThisRoom = errors.New("UserNotInThisRoom")
+	ChannelClosed     = errors.New("ChannelClosed")
 )
