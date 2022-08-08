@@ -12,8 +12,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
+	ControllerChat "github.com/img21326/fb_chat/controller/chat"
 	ControllerLogin "github.com/img21326/fb_chat/controller/login"
-	ControllerMessage "github.com/img21326/fb_chat/controller/message"
 	ControllerWS "github.com/img21326/fb_chat/controller/ws"
 	"github.com/img21326/fb_chat/hub"
 	"github.com/img21326/fb_chat/middleware/jwt"
@@ -66,11 +66,11 @@ func StartUpRedisServer(db *gorm.DB, redis *redis.Client, port string) {
 
 	handler := gin.Default()
 	jwtMiddleware := jwt.NewJWTValidMiddleware(authUsecase)
-	jwtRoute := handler.Group("/auth")
-	jwtRoute.Use(jwtMiddleware.ValidHeaderToken)
+	chatRoute := handler.Group("/chat")
+	chatRoute.Use(jwtMiddleware.ValidHeaderToken)
 
 	ControllerLogin.NewLoginController(handler, authUsecase)
-	ControllerMessage.NewMessageController(jwtRoute, messageUsecase)
+	ControllerChat.NewChatController(chatRoute, messageUsecase)
 	ControllerWS.NewWebsocketController(handler, wsUsecase, authUsecase, pubChan, queueChan)
 
 	srv := &http.Server{

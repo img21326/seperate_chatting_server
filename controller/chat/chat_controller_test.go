@@ -1,4 +1,4 @@
-package message
+package chat
 
 import (
 	"net/http"
@@ -72,7 +72,7 @@ func TestGetHistoryByUserID(t *testing.T) {
 		ctx.Next()
 	})
 
-	NewMessageController(r, messageUsecase)
+	NewChatController(r, messageUsecase)
 
 	type Res struct {
 		Message []*ModelMessage.Message `json:"messages"`
@@ -116,7 +116,7 @@ func TestGetHistoryBylastMessageId(t *testing.T) {
 		ctx.Next()
 	})
 
-	NewMessageController(r, messageUsecase)
+	NewChatController(r, messageUsecase)
 
 	req, _ := http.NewRequest("GET", "/history?last_message_id=1", nil)
 	r.ServeHTTP(w, req)

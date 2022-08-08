@@ -1,4 +1,4 @@
-package message
+package chat
 
 import (
 	"fmt"
@@ -9,19 +9,19 @@ import (
 	"github.com/img21326/fb_chat/usecase/message"
 )
 
-type MessageController struct {
+type ChatController struct {
 	MessageUsecase message.MessageUsecaseInterface
 }
 
-func NewMessageController(e gin.IRoutes, messageUsecase message.MessageUsecaseInterface) {
-	controller := &MessageController{
+func NewChatController(e gin.IRoutes, messageUsecase message.MessageUsecaseInterface) {
+	controller := &ChatController{
 		MessageUsecase: messageUsecase,
 	}
 
 	e.GET("/history", controller.GetHistory)
 }
 
-func (c *MessageController) GetHistory(ctx *gin.Context) {
+func (c *ChatController) GetHistory(ctx *gin.Context) {
 	user := ctx.MustGet("user").(*user.User)
 	lastMessageIdstr, ok := ctx.GetQuery("last_message_id")
 	if !ok {
