@@ -19,9 +19,31 @@ func getRedis() *redis.Client {
 	return redis.NewClient(redisClient)
 }
 
-func TestPubSub(t *testing.T) {
+func getLocalRepo() PubSubRepoInterface {
+	return NewLocalPubSubRepo()
+}
+
+func getRedisRepo() PubSubRepoInterface {
 	redis := getRedis()
-	repo := PubSubRepo{Redis: redis}
+	return NewRedisPubSubRepo(redis)
+}
+
+func TestLocalPubSub(t *testing.T) {
+	repo := getLocalRepo()
+
+	ctx := context.Background()
+	topic := helper.RandString(5)
+	subFunc := repo.Sub(ctx, topic)
+	repo.Pub(ctx, topic, []byte("test"))
+
+	msg, err := subFunc()
+
+	assert.Nil(t, err)
+	assert.Equal(t, string(msg[:]), "test")
+}
+
+func TestRedisPubSub(t *testing.T) {
+	repo := getRedisRepo()
 
 	ctx := context.Background()
 	topic := helper.RandString(5)
@@ -35,8 +57,20 @@ func TestPubSub(t *testing.T) {
 }
 
 func TestSubShutdown(t *testing.T) {
-	redis := getRedis()
-	repo := PubSubRepo{Redis: redis}
+	repo := getLocalRepo()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	topic := helper.RandString(5)
+	subFunc := repo.Sub(ctx, topic)
+	cancel()
+	msg, err := subFunc()
+
+	assert.Nil(t, msg)
+	assert.Equal(t, err, errorStruct.ChannelClosed)
+}
+
+func TestRedisSubShutdown(t *testing.T) {
+	repo := getRedisRepo()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	topic := helper.RandString(5)

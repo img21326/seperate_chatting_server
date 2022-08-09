@@ -41,7 +41,7 @@ func initRedisRepo(db *gorm.DB, redis *redis.Client) (messageRepo RepoMessage.Me
 	roomRepo = RepoRoom.NewRoomRepo(db)
 	userRepo = RepoUser.NewUserRepo(db)
 	waitRepo = RepoWait.NewRedisWaitRepo(redis)
-	pubSubRepo = RepoPubSub.NewPubSubRepo(redis)
+	pubSubRepo = RepoPubSub.NewRedisPubSubRepo(redis)
 	return
 }
 

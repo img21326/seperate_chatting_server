@@ -8,17 +8,17 @@ import (
 	"github.com/img21326/fb_chat/structure/pub"
 )
 
-type PubSubRepo struct {
+type RedisPubSubRepo struct {
 	Redis *redis.Client
 }
 
-func NewPubSubRepo(redis *redis.Client) PubSubRepoInterface {
-	return &PubSubRepo{
+func NewRedisPubSubRepo(redis *redis.Client) PubSubRepoInterface {
+	return &RedisPubSubRepo{
 		Redis: redis,
 	}
 }
 
-func (repo *PubSubRepo) Sub(ctx context.Context, topic string) func() ([]byte, error) {
+func (repo *RedisPubSubRepo) Sub(ctx context.Context, topic string) func() ([]byte, error) {
 	PubSub := repo.Redis.Subscribe(ctx, topic)
 	ReturnChan := make(chan *pub.ReceiveMessage)
 	go func(ctx context.Context, PubSub *redis.PubSub, ReturnChan chan *pub.ReceiveMessage) {
@@ -48,6 +48,6 @@ func (repo *PubSubRepo) Sub(ctx context.Context, topic string) func() ([]byte, e
 	}
 }
 
-func (repo *PubSubRepo) Pub(ctx context.Context, topic string, message []byte) error {
+func (repo *RedisPubSubRepo) Pub(ctx context.Context, topic string, message []byte) error {
 	return repo.Redis.Publish(ctx, topic, message).Err()
 }
