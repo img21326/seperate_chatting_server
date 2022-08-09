@@ -49,7 +49,7 @@ func TestRegisterAPI(t *testing.T) {
 	assert.Equal(t, uid, getU.UUID)
 }
 
-func TestMessageHistoryAPI(t *testing.T) {
+func TestChatHistoryAPI(t *testing.T) {
 	fakeUser := []*user.User{
 		&user.User{
 			UUID:   uuid.New(),
@@ -204,5 +204,148 @@ func TestMessageHistoryAPI(t *testing.T) {
 	assert.Equal(t, resultMessageID2, getMessageID2)
 	// with params out
 	// test not in room
+}
 
+func TestChatInroomWithTrue(t *testing.T) {
+	fakeUser := []*user.User{
+		&user.User{
+			UUID:   uuid.New(),
+			Gender: "male",
+		},
+		&user.User{
+			UUID:   uuid.New(),
+			Gender: "female",
+		},
+		&user.User{
+			UUID:   uuid.New(),
+			Gender: "female",
+		},
+	}
+	DB.Create(&fakeUser)
+	fakeRoom := []*room.Room{
+		&room.Room{
+			UserId1: fakeUser[0].ID,
+			UserId2: fakeUser[1].ID,
+			UUID:    uuid.New(),
+			Close:   true,
+		},
+		&room.Room{
+			UserId1: fakeUser[0].ID,
+			UserId2: fakeUser[2].ID,
+			UUID:    uuid.New(),
+			Close:   false,
+		},
+	}
+	DB.Create(&fakeRoom)
+
+	Port := strconv.Itoa(randintRange(9700, 9600))
+	go server.StartUpRedisServer(DB, Redis, Port)
+
+	res, err := http.Get(URL + fmt.Sprintf(":%v", Port) + fmt.Sprintf("/refresh?uuid=%v", fakeUser[0].UUID))
+	assert.Nil(t, err)
+
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	assert.Nil(t, err)
+
+	type ResToken struct {
+		Token string `json:"token"`
+	}
+	var a ResToken
+	err = json.Unmarshal(body, &a)
+	assert.Nil(t, err)
+	assert.NotNil(t, a.Token)
+
+	/// refresh token end
+
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", URL+fmt.Sprintf(":%v", Port)+"/chat/inroom", nil)
+	assert.Nil(t, err)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", a.Token))
+	res, err = client.Do(req)
+	assert.Nil(t, err)
+	body, err = ioutil.ReadAll(res.Body)
+	assert.Nil(t, err)
+
+	type Res struct {
+		Status bool `json:"status"`
+	}
+	var r Res
+	err = json.Unmarshal(body, &r)
+
+	assert.Nil(t, err)
+	assert.Equal(t, r.Status, true)
+	// basic end
+}
+
+func TestChatInroomWithFalse(t *testing.T) {
+	fakeUser := []*user.User{
+		&user.User{
+			UUID:   uuid.New(),
+			Gender: "male",
+		},
+		&user.User{
+			UUID:   uuid.New(),
+			Gender: "female",
+		},
+		&user.User{
+			UUID:   uuid.New(),
+			Gender: "female",
+		},
+	}
+	DB.Create(&fakeUser)
+	fakeRoom := []*room.Room{
+		&room.Room{
+			UserId1: fakeUser[0].ID,
+			UserId2: fakeUser[1].ID,
+			UUID:    uuid.New(),
+			Close:   true,
+		},
+		&room.Room{
+			UserId1: fakeUser[0].ID,
+			UserId2: fakeUser[2].ID,
+			UUID:    uuid.New(),
+			Close:   true,
+		},
+	}
+	DB.Create(&fakeRoom)
+
+	Port := strconv.Itoa(randintRange(9700, 9600))
+	go server.StartUpRedisServer(DB, Redis, Port)
+
+	res, err := http.Get(URL + fmt.Sprintf(":%v", Port) + fmt.Sprintf("/refresh?uuid=%v", fakeUser[0].UUID))
+	assert.Nil(t, err)
+
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	assert.Nil(t, err)
+
+	type ResToken struct {
+		Token string `json:"token"`
+	}
+	var a ResToken
+	err = json.Unmarshal(body, &a)
+	assert.Nil(t, err)
+	assert.NotNil(t, a.Token)
+
+	/// refresh token end
+
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", URL+fmt.Sprintf(":%v", Port)+"/chat/inroom", nil)
+	assert.Nil(t, err)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", a.Token))
+	res, err = client.Do(req)
+	assert.Nil(t, err)
+	body, err = ioutil.ReadAll(res.Body)
+	assert.Nil(t, err)
+
+	type Res struct {
+		Status bool `json:"status"`
+	}
+	var r Res
+	err = json.Unmarshal(body, &r)
+
+	assert.Nil(t, err)
+	assert.Equal(t, r.Status, false)
+	// basic end
 }
