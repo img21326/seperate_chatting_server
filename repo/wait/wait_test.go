@@ -25,7 +25,35 @@ func getRedis() *redis.Client {
 	return redisClient
 }
 
-func TestAdd(t *testing.T) {
+func TestLocalLenAndAdd(t *testing.T) {
+	waitRepo := NewLocalWaitRepo()
+	ctx := context.Background()
+	assert.Equal(t, waitRepo.Len(ctx, "test"), 0)
+	waitRepo.Add(ctx, "test", 1)
+	assert.Equal(t, waitRepo.Len(ctx, "test"), 1)
+}
+
+func TestLocalPop(t *testing.T) {
+	waitRepo := NewLocalWaitRepo()
+	ctx := context.Background()
+	waitRepo.Add(ctx, "test", 1)
+	r, err := waitRepo.Pop(ctx, "test")
+	assert.Equal(t, r, uint(1))
+	assert.Nil(t, err)
+}
+
+func TestLocalPopErr(t *testing.T) {
+	redis := getRedis()
+	waitRepo := WaitRedisRepo{
+		Redis: redis,
+	}
+	ctx := context.Background()
+	r, err := waitRepo.Pop(ctx, "test")
+	t.Logf("pop r: %+v, err: %+v", r, err)
+	assert.NotNil(t, err)
+}
+
+func TestRedisAdd(t *testing.T) {
 	redis := getRedis()
 	waitRepo := WaitRedisRepo{
 		Redis: redis,
@@ -38,7 +66,7 @@ func TestAdd(t *testing.T) {
 	assert.Equal(t, int(r.Val()), 1)
 }
 
-func TestLen(t *testing.T) {
+func TestRedisLen(t *testing.T) {
 	redis := getRedis()
 	waitRepo := WaitRedisRepo{
 		Redis: redis,
@@ -51,7 +79,7 @@ func TestLen(t *testing.T) {
 	assert.Equal(t, r, 1)
 }
 
-func TestPop(t *testing.T) {
+func TestRedisPop(t *testing.T) {
 	redis := getRedis()
 	waitRepo := WaitRedisRepo{
 		Redis: redis,
@@ -63,7 +91,7 @@ func TestPop(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestPopErr(t *testing.T) {
+func TestRedisPopErr(t *testing.T) {
 	redis := getRedis()
 	waitRepo := WaitRedisRepo{
 		Redis: redis,
