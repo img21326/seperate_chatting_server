@@ -2,6 +2,7 @@ package online
 
 import (
 	"context"
+	"sync"
 	"testing"
 
 	"github.com/alicebob/miniredis"
@@ -25,7 +26,45 @@ func getRedis() *redis.Client {
 	return redisClient
 }
 
-func TestRegister(t *testing.T) {
+func TestLocalRegister(t *testing.T) {
+	onlineRepo := &LocalOnlineRepo{
+		ClientMap: make(map[uint]bool),
+		lock:      &sync.RWMutex{},
+	}
+
+	ctx := context.Background()
+	onlineRepo.Register(ctx, 1)
+
+	assert.Equal(t, onlineRepo.ClientMap[1], true)
+}
+
+func TestLocalUnRegister(t *testing.T) {
+	onlineRepo := &LocalOnlineRepo{
+		ClientMap: make(map[uint]bool),
+		lock:      &sync.RWMutex{},
+	}
+
+	ctx := context.Background()
+	onlineRepo.Register(ctx, 1)
+	onlineRepo.UnRegister(ctx, 1)
+	assert.Equal(t, onlineRepo.ClientMap[1], false)
+}
+
+func TestLocalCheckUserOnline(t *testing.T) {
+	onlineRepo := &LocalOnlineRepo{
+		ClientMap: make(map[uint]bool),
+		lock:      &sync.RWMutex{},
+	}
+
+	ctx := context.Background()
+	assert.Equal(t, onlineRepo.CheckUserOnline(ctx, 1), false)
+	onlineRepo.Register(ctx, 1)
+	assert.Equal(t, onlineRepo.CheckUserOnline(ctx, 1), true)
+	onlineRepo.UnRegister(ctx, 1)
+	assert.Equal(t, onlineRepo.CheckUserOnline(ctx, 1), false)
+}
+
+func TestRedisRegister(t *testing.T) {
 	redis := getRedis()
 	onlineRepo := OnlineRedisRepo{Redis: redis}
 
@@ -36,7 +75,7 @@ func TestRegister(t *testing.T) {
 	assert.Equal(t, l.Val(), "1")
 }
 
-func TestUnRegister(t *testing.T) {
+func TestRedisUnRegister(t *testing.T) {
 	redis := getRedis()
 	onlineRepo := OnlineRedisRepo{Redis: redis}
 
@@ -49,7 +88,7 @@ func TestUnRegister(t *testing.T) {
 	assert.Equal(t, int(l.Val()), 0)
 }
 
-func TestCheckUserOnline(t *testing.T) {
+func TestRedisCheckUserOnline(t *testing.T) {
 	redis := getRedis()
 	onlineRepo := OnlineRedisRepo{Redis: redis}
 
