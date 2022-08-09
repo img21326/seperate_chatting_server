@@ -128,7 +128,7 @@ func TestMessageHistoryAPI(t *testing.T) {
 	/// refresh token end
 
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", URL+fmt.Sprintf(":%v", Port)+"/auth/history", nil)
+	req, err := http.NewRequest("GET", URL+fmt.Sprintf(":%v", Port)+"/chat/history", nil)
 	assert.Nil(t, err)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", a.Token))
 	res, err = client.Do(req)
@@ -169,7 +169,7 @@ func TestMessageHistoryAPI(t *testing.T) {
 		}
 	}
 
-	req, err = http.NewRequest("GET", URL+fmt.Sprintf(":%v", Port)+fmt.Sprintf("/auth/history?last_message_id=%v", fakeMessages[randMessageIndex].ID), nil)
+	req, err = http.NewRequest("GET", URL+fmt.Sprintf(":%v", Port)+fmt.Sprintf("/chat/history?last_message_id=%v", fakeMessages[randMessageIndex].ID), nil)
 	assert.Nil(t, err)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", a.Token))
 	res, err = client.Do(req)

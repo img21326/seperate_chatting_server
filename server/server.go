@@ -70,7 +70,7 @@ func StartUpRedisServer(db *gorm.DB, redis *redis.Client, port string) {
 	chatRoute.Use(jwtMiddleware.ValidHeaderToken)
 
 	ControllerLogin.NewLoginController(handler, authUsecase)
-	ControllerChat.NewChatController(chatRoute, messageUsecase)
+	ControllerChat.NewChatController(chatRoute, messageUsecase, wsUsecase)
 	ControllerWS.NewWebsocketController(handler, wsUsecase, authUsecase, pubChan, queueChan)
 
 	srv := &http.Server{
