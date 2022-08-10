@@ -34,11 +34,11 @@ func (h *SubHub) Run(ctx context.Context, topic string, ReceiveMessageChan chan 
 				return
 			}
 		}
-		var redisMessage pubmessage.PublishMessage
+		var Message pubmessage.PublishMessage
 
-		if err := json.Unmarshal(msg, &redisMessage); err != nil {
+		if err := json.Unmarshal(msg, &Message); err != nil {
 			log.Printf("pubsub message json load error: %v", err)
 		}
-		ReceiveMessageChan <- &redisMessage
+		ReceiveMessageChan <- &Message
 	}
 }
