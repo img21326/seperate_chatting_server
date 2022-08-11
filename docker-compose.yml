@@ -4,17 +4,20 @@ services:
   server:
     build: .
     image: chat_server
-    depends_on:
-      - db
-    ports:
-      - 8080:8080
-  db:
-    image: postgres
-    restart: always
     environment:
-      POSTGRES_PASSWORD: example
-      PGDATA: /var/lib/postgresql/data/pgdata
+      SERVER_TYPE: LOCAL_SERVER
+      SERVER_PORT: 8080
+    # depends_on:
+    #   - db
     ports:
-      - 5432:5432
-    volumes:
-      - ./backup/pgdata:/var/lib/postgresql/data/pgdata
+      - 8085:8080
+  # db:
+  #   image: postgres
+  #   restart: always
+  #   environment:
+  #     POSTGRES_PASSWORD: example
+  #     PGDATA: /var/lib/postgresql/data/pgdata
+  #   ports:
+  #     - 5432:5432
+  #   volumes:
+  #     - ./backup/pgdata:/var/lib/postgresql/data/pgdata
