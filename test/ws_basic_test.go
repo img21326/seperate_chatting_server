@@ -3,8 +3,6 @@ package test
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"strconv"
 	"testing"
 
@@ -74,16 +72,9 @@ func TestUserInRoom(t *testing.T) {
 
 	Port := strconv.Itoa(randintRange(9700, 9650))
 	go server.StartUpRedisServer(DB, Redis, Port)
-	res, err := http.Get(URL + fmt.Sprintf(":%v", Port) + fmt.Sprintf("/refresh?uuid=%v", fakeUser[0].UUID))
-	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
-	type ResToken struct {
-		Token string `json:"token"`
-	}
-	var a ResToken
-	_ = json.Unmarshal(body, &a)
+	token := getUserToken(Port, fakeUser[0].UUID)
 
-	c, _, err := websocket.DefaultDialer.Dial(WSURL+fmt.Sprintf(":%v", Port)+fmt.Sprintf("/ws?token=%v", a.Token), nil)
+	c, _, err := websocket.DefaultDialer.Dial(WSURL+fmt.Sprintf(":%v", Port)+fmt.Sprintf("/ws?token=%v", token), nil)
 	assert.Nil(t, err)
 	_, message, err := c.ReadMessage()
 	c.Close()
@@ -125,16 +116,9 @@ func TestUserParingErrorWithNotSetParams(t *testing.T) {
 
 	Port := strconv.Itoa(randintRange(9700, 9650))
 	go server.StartUpRedisServer(DB, Redis, Port)
-	res, err := http.Get(URL + fmt.Sprintf(":%v", Port) + fmt.Sprintf("/refresh?uuid=%v", fakeUser[0].UUID))
-	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
-	type ResToken struct {
-		Token string `json:"token"`
-	}
-	var a ResToken
-	_ = json.Unmarshal(body, &a)
+	token := getUserToken(Port, fakeUser[0].UUID)
 
-	c, _, err := websocket.DefaultDialer.Dial(WSURL+fmt.Sprintf(":%v", Port)+fmt.Sprintf("/ws?token=%v", a.Token), nil)
+	c, _, err := websocket.DefaultDialer.Dial(WSURL+fmt.Sprintf(":%v", Port)+fmt.Sprintf("/ws?token=%v", token), nil)
 	assert.Nil(t, err)
 	_, message, err := c.ReadMessage()
 	c.Close()
@@ -142,7 +126,7 @@ func TestUserParingErrorWithNotSetParams(t *testing.T) {
 	assert.Equal(t, string(message[:]), `{'error': 'NotSetWantParams'}`)
 }
 
-func TestUserParing(t *testing.T) {
+func TestUserInParing(t *testing.T) {
 	fakeUser := []*user.User{
 		&user.User{
 			UUID:   uuid.New(),
@@ -176,19 +160,69 @@ func TestUserParing(t *testing.T) {
 
 	Port := strconv.Itoa(randintRange(9700, 9650))
 	go server.StartUpRedisServer(DB, Redis, Port)
-	res, err := http.Get(URL + fmt.Sprintf(":%v", Port) + fmt.Sprintf("/refresh?uuid=%v", fakeUser[0].UUID))
-	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
-	type ResToken struct {
-		Token string `json:"token"`
-	}
-	var a ResToken
-	_ = json.Unmarshal(body, &a)
+	token := getUserToken(Port, fakeUser[0].UUID)
 
-	c, _, err := websocket.DefaultDialer.Dial(WSURL+fmt.Sprintf(":%v", Port)+fmt.Sprintf("/ws?token=%v&want=female", a.Token), nil)
+	c, _, err := websocket.DefaultDialer.Dial(WSURL+fmt.Sprintf(":%v", Port)+fmt.Sprintf("/ws?token=%v&want=female", token), nil)
 	assert.Nil(t, err)
 	_, message, err := c.ReadMessage()
 	c.Close()
 	assert.Nil(t, err)
 	assert.Equal(t, string(message[:]), `{'type': 'Paring'}`)
+}
+
+func TestUserParingSuccess(t *testing.T) {
+	fakeUser := []*user.User{
+		&user.User{
+			UUID:   uuid.New(),
+			Gender: "male",
+		},
+		&user.User{
+			UUID:   uuid.New(),
+			Gender: "female",
+		},
+	}
+	DB.Create(&fakeUser)
+
+	Port := strconv.Itoa(randintRange(9750, 9700))
+	go server.StartUpRedisServer(DB, Redis, Port)
+	user1Token := getUserToken(Port, fakeUser[0].UUID)
+	user2Token := getUserToken(Port, fakeUser[1].UUID)
+	c1, _, err := websocket.DefaultDialer.Dial(WSURL+fmt.Sprintf(":%v", Port)+fmt.Sprintf("/ws?token=%v&want=female", user1Token), nil)
+	assert.Nil(t, err)
+	go func() {
+		c2, _, err := websocket.DefaultDialer.Dial(WSURL+fmt.Sprintf(":%v", Port)+fmt.Sprintf("/ws?token=%v&want=male", user2Token), nil)
+		assert.Nil(t, err)
+		for {
+			c2.ReadMessage()
+		}
+	}()
+	index := 0
+	for {
+		_, msg, err := c1.ReadMessage()
+		t.Log(string(msg[:]))
+		t.Log(index)
+		assert.Nil(t, err)
+		if index == 0 {
+			assert.Equal(t, string(msg[:]), `{'type': 'Paring'}`)
+			index += 1
+			continue
+		}
+		if index == 1 {
+			type Res struct {
+				Type     string    `json:"type"`
+				SendFrom int       `json:"sendFrom"`
+				SendTo   int       `json:"sendTo"`
+				Payload  uuid.UUID `json:"payload"`
+			}
+			var res Res
+			err = json.Unmarshal(msg, &res)
+			assert.Nil(t, err)
+			assert.Equal(t, res.Type, "pairSuccess")
+			assert.Equal(t, res.SendFrom, 2)
+			assert.Equal(t, res.SendTo, 1)
+			assert.NotNil(t, res.Payload)
+			break
+		}
+	}
+
 }
