@@ -1,3 +1,4 @@
 backup/*
 gorm.db
 log.txt
+.env
