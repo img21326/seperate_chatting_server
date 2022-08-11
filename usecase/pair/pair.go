@@ -61,7 +61,7 @@ func (u *RedisPairUsecase) TryToPair(ctx context.Context, client *client.Client)
 			Close:   false,
 		}
 		pairStat = true
-		log.Printf("[RedisPairUsecase] pair success: %v & %v\n", newRoom.UserId1, newRoom.UserId2)
+		log.Printf("[PairUsecase] pair success: %v & %v\n", newRoom.UserId1, newRoom.UserId2)
 		break
 	}
 	if pairStat {
@@ -72,7 +72,7 @@ func (u *RedisPairUsecase) TryToPair(ctx context.Context, client *client.Client)
 
 func (u *RedisPairUsecase) AddToQueue(ctx context.Context, client *client.Client) {
 	u.WaitRepo.Add(ctx, u.getInsertQueueName(client), client.User.ID)
-	log.Printf("[RedisPairUsecase] add queue user: %v\n", client.User.ID)
+	log.Printf("[PairUsecase] add queue user: %v\n", client.User.ID)
 }
 
 func (u *RedisPairUsecase) PairSuccess(ctx context.Context, room *room.Room) (m1 *pubmessage.PublishMessage,
@@ -97,13 +97,13 @@ func (u *RedisPairUsecase) PairSuccess(ctx context.Context, room *room.Room) (m1
 			Type:     "pairSuccess",
 			SendFrom: room.UserId1,
 			SendTo:   room.UserId2,
-			Payload:  room.ID,
+			Payload:  room.UUID.String(),
 		}
 		m2 = &pubmessage.PublishMessage{
 			Type:     "pairSuccess",
 			SendFrom: room.UserId2,
 			SendTo:   room.UserId1,
-			Payload:  room.ID,
+			Payload:  room.UUID.String(),
 		}
 	}
 	return

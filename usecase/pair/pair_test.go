@@ -135,12 +135,12 @@ func TestPairSuccess(t *testing.T) {
 		Type:     "pairSuccess",
 		SendFrom: room.UserId1,
 		SendTo:   room.UserId2,
-		Payload:  room.ID,
+		Payload:  room.UUID.String(),
 	})
 	assert.Equal(t, m2, &pubmessage.PublishMessage{
 		Type:     "pairSuccess",
 		SendFrom: room.UserId2,
 		SendTo:   room.UserId1,
-		Payload:  room.ID,
+		Payload:  room.UUID.String(),
 	})
 }

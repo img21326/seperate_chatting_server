@@ -115,7 +115,7 @@ func (c *Client) WritePump() {
 		case <-c.Ctx.Done():
 			return
 		case message, ok := <-c.Send:
-			log.Printf("[websocket client] get send message: %v", message)
+			log.Printf("[websocket client] get send message: %v", string(message[:]))
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The hub closed the channel.

@@ -63,7 +63,7 @@ func (h *PairHub) Run(ctx context.Context) {
 			c := context.Background()
 			room, err := h.PairUsecase.TryToPair(c, client)
 			if err != nil {
-				if err == errorStruct.PairNotSuccess {
+				if err == errorStruct.PairNotSuccess || err == errorStruct.QueueSmallerThan1 {
 					h.PairUsecase.AddToQueue(c, client)
 				} else {
 					log.Printf("[PairHub] error: %+v", err)

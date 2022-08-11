@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-playground/assert/v2"
 	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	"github.com/img21326/fb_chat/mock"
 	"github.com/img21326/fb_chat/structure/message"
 	pubmessage "github.com/img21326/fb_chat/structure/pub_message"
@@ -39,8 +40,9 @@ func TestSaveMessage(t *testing.T) {
 func TestReceivePairSuccess(t *testing.T) {
 	c := gomock.NewController(t)
 
-	mes1 := &pubmessage.PublishMessage{Type: "pairSuccess", SendTo: 1}
-	mes2 := &pubmessage.PublishMessage{Type: "pairSuccess", SendTo: 2}
+	roomID := uuid.New()
+	mes1 := &pubmessage.PublishMessage{Type: "pairSuccess", SendTo: 1, Payload: roomID}
+	mes2 := &pubmessage.PublishMessage{Type: "pairSuccess", SendTo: 2, Payload: roomID}
 	ctx, cancel := context.WithCancel(context.Background())
 
 	messageUsecase := mock.NewMockMessageUsecaseInterface(c)
