@@ -35,6 +35,7 @@ func (h *PubHub) Run(ctx context.Context, topic string, MessageChan chan *pubmes
 		case message := <-MessageChan:
 			ctx := context.Background()
 			h.PubUsecase.Publish(ctx, topic, message)
+			log.Printf("[Pub] pub msg: %v", message)
 		}
 	}
 }

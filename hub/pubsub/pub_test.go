@@ -12,7 +12,7 @@ import (
 
 func TestPub(t *testing.T) {
 	c := gomock.NewController(t)
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	pubUsecase := mock.NewMockSubMessageUsecaseInterface(c)
 
 	msg := &pubmessage.PublishMessage{}
@@ -20,8 +20,9 @@ func TestPub(t *testing.T) {
 
 	pubHub := NewPubHub(pubUsecase)
 	mc := make(chan *pubmessage.PublishMessage, 1)
-	go pubHub.Run(ctx, "test", mc)
 
+	go pubHub.Run(ctx, "test", mc)
 	mc <- msg
-	time.Sleep(time.Duration(500) * time.Millisecond)
+	cancel()
+	time.Sleep(time.Duration(3) * time.Second)
 }
