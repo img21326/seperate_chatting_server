@@ -84,6 +84,7 @@ func StartUpRedisServer(db *gorm.DB, redis *redis.Client, port string) {
 		}
 	}()
 	<-shutdownChan
+	log.Println("shutdown timeout of 10 seconds.")
 	cancel()
 
 	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
@@ -92,7 +93,6 @@ func StartUpRedisServer(db *gorm.DB, redis *redis.Client, port string) {
 		log.Fatal("Server Shutdown:", err)
 	}
 	<-ctx.Done()
-	log.Println("timeout of 10 seconds.")
 	log.Println("Server exiting")
 }
 
@@ -148,6 +148,7 @@ func StartUpLocalServer(db *gorm.DB, port string) {
 		}
 	}()
 	<-shutdownChan
+	log.Println("shutdown timeout of 10 seconds.")
 	cancel()
 
 	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)

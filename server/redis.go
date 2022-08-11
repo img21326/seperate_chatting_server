@@ -1,13 +1,18 @@
 package server
 
-import "github.com/go-redis/redis/v8"
+import (
+	"github.com/go-redis/redis/v8"
+	"github.com/spf13/viper"
+)
 
 func InitRedis(option *redis.Options) *redis.Client {
+	vip := viper.GetViper()
+
 	if option == nil {
 		option = &redis.Options{
-			Addr:     "139.162.125.28:6379",
-			Password: "",
-			DB:       5,
+			Addr:     vip.GetString("REDIS_HOST"),
+			Password: vip.GetString("REDIS_PWD"),
+			DB:       vip.GetInt("REDIS_DB"),
 		}
 	}
 	client := redis.NewClient(option)
