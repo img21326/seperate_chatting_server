@@ -27,7 +27,7 @@ func (h *SubHub) Run(ctx context.Context, topic string, ReceiveMessageChan chan 
 	// subscriber will be close in repo package
 	for {
 		msg, err := subscriber()
-		log.Printf("[Sub] get message: %v", msg)
+		log.Printf("[Sub] get message: %v", string(msg[:]))
 		if err != nil {
 			log.Printf("[Sub] sub message receive error: %v", err)
 			if err == errorStruct.ChannelClosed {

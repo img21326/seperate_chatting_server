@@ -10,13 +10,13 @@ import (
 )
 
 type LocalPubSubRepo struct {
-	SubscribeMap map[string][]*ChannelClose.ChannelClose
+	SubscribeMap map[string][]*ChannelClose.ChannelClose[*pub.ReceiveMessage]
 	Lock         *sync.Mutex
 }
 
 func NewLocalPubSubRepo() PubSubRepoInterface {
 	return &LocalPubSubRepo{
-		SubscribeMap: make(map[string][]*ChannelClose.ChannelClose),
+		SubscribeMap: make(map[string][]*ChannelClose.ChannelClose[*pub.ReceiveMessage]),
 		Lock:         new(sync.Mutex),
 	}
 }
@@ -24,7 +24,7 @@ func NewLocalPubSubRepo() PubSubRepoInterface {
 func (repo *LocalPubSubRepo) Sub(ctx context.Context, topic string) func() ([]byte, error) {
 	defer repo.Lock.Unlock()
 	repo.Lock.Lock()
-	c := make(chan interface{}, 1024)
+	c := make(chan *pub.ReceiveMessage, 1024)
 	chanClose := ChannelClose.NewChanClose(c)
 	repo.SubscribeMap[topic] = append(repo.SubscribeMap[topic], chanClose)
 
@@ -42,12 +42,7 @@ func (repo *LocalPubSubRepo) Sub(ctx context.Context, topic string) func() ([]by
 				return
 			default:
 				msg := chanClose.Pop()
-				rm, ok := msg.(*pub.ReceiveMessage)
-				if !ok {
-					rm.Error = errorStruct.InterfaceConvertError
-					rm.Payload = nil
-				}
-				ReturnChan <- rm
+				ReturnChan <- msg
 			}
 		}
 	}(ctx, returnChan)

@@ -6,27 +6,27 @@ import (
 	errorStruct "github.com/img21326/fb_chat/structure/error"
 )
 
-type ChannelClose struct {
-	Chan   chan interface{}
+type ChannelClose[T any] struct {
+	Chan   chan T
 	Closed bool
 	lock   *sync.RWMutex
 }
 
-func NewChanClose(c chan interface{}) *ChannelClose {
-	return &ChannelClose{
+func NewChanClose[T any](c chan T) *ChannelClose[T] {
+	return &ChannelClose[T]{
 		Chan:   c,
 		Closed: false,
 		lock:   &sync.RWMutex{},
 	}
 }
 
-func (c *ChannelClose) Close() {
+func (c *ChannelClose[T]) Close() {
 	defer c.lock.Unlock()
 	c.lock.Lock()
 	c.Closed = true
 }
 
-func (c *ChannelClose) Push(obj interface{}) error {
+func (c *ChannelClose[T]) Push(obj T) error {
 	defer c.lock.RUnlock()
 	c.lock.RLock()
 	if c.Closed {
@@ -36,6 +36,6 @@ func (c *ChannelClose) Push(obj interface{}) error {
 	return nil
 }
 
-func (c *ChannelClose) Pop() interface{} {
+func (c *ChannelClose[T]) Pop() T {
 	return <-c.Chan
 }
