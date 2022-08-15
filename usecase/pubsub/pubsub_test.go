@@ -18,7 +18,7 @@ func TestSubscribe(t *testing.T) {
 		return []byte("test"), nil
 	})
 
-	pubsubUsecase := RedisSubUsecase{PubSubRepo: pubsubRepo}
+	pubsubUsecase := SubUsecase{PubSubRepo: pubsubRepo}
 	ctx := context.Background()
 	sub := pubsubUsecase.Subscribe(ctx, "test")
 
@@ -38,7 +38,7 @@ func TestPublish(t *testing.T) {
 	jsonMessage, _ := json.Marshal(m)
 	pubsubRepo.EXPECT().Pub(gomock.Any(), "test", jsonMessage).Times(1)
 
-	pubsubUsecase := RedisSubUsecase{PubSubRepo: pubsubRepo}
+	pubsubUsecase := SubUsecase{PubSubRepo: pubsubRepo}
 	ctx := context.Background()
 	pubsubUsecase.Publish(ctx, "test", m)
 }

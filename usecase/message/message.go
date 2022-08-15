@@ -90,7 +90,10 @@ func (u *MessageUsecase) HandlePairSuccessMessage(receiver *client.Client, recei
 	}
 	receiver.RoomId = uuid
 	receiver.PairId = receiveMessage.SendFrom
-	receiver.Send <- jsonMessage
+	err = receiver.Send.Push(jsonMessage)
+	if err != nil {
+		log.Printf("[MessageUsecase] HandlePairSuccessMessage receiver send message err: %v", err)
+	}
 	return nil
 }
 
@@ -101,11 +104,17 @@ func (u *MessageUsecase) HandleClientOnMessage(sender *client.Client, receiver *
 		return err
 	}
 	if receiver != nil {
-		receiver.Send <- jsonMessage
+		err := receiver.Send.Push(jsonMessage)
+		if err != nil {
+			log.Printf("[MessageUsecase] HandleClientOnMessage receiver send message err: %v", err)
+		}
 	}
 	// ack message
 	if sender != nil {
-		sender.Send <- jsonMessage
+		err := sender.Send.Push(jsonMessage)
+		if err != nil {
+			log.Printf("[MessageUsecase] HandleClientOnMessage sender send message err: %v", err)
+		}
 		// which server send message, which server should save it.
 		if receiveMessage.Type == "message" {
 			receiveM, err := json.Marshal(receiveMessage.Payload)

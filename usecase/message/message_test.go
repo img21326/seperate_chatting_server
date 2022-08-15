@@ -9,6 +9,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+	chan_close "github.com/img21326/fb_chat/helper/chan_close"
 	"github.com/img21326/fb_chat/mock"
 	errorStruct "github.com/img21326/fb_chat/structure/error"
 	"github.com/img21326/fb_chat/structure/message"
@@ -292,8 +293,9 @@ func TestGetOnlineClients(t *testing.T) {
 func TestHandlePairSuccessMessage(t *testing.T) {
 	MessageUsecase := &MessageUsecase{}
 
+	sendChanClose := chan_close.NewChanClose[[]byte](make(chan []byte, 1))
 	receiver := client.Client{
-		Send: make(chan []byte, 1),
+		Send: sendChanClose,
 	}
 	roomID := uuid.New()
 	mes := &pubmessage.PublishMessage{
@@ -307,7 +309,7 @@ func TestHandlePairSuccessMessage(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, receiver.RoomId, roomID)
 	assert.Equal(t, receiver.PairId, uint(2))
-	assert.Equal(t, jsonMessage, <-receiver.Send)
+	assert.Equal(t, jsonMessage, <-receiver.Send.Chan)
 }
 
 func TestHandleClientOnMessage(t *testing.T) {
@@ -315,13 +317,15 @@ func TestHandleClientOnMessage(t *testing.T) {
 
 	saveChan := make(chan *message.Message, 1)
 
+	sendChanClose := chan_close.NewChanClose[[]byte](make(chan []byte, 1))
 	sender := client.Client{
-		Send: make(chan []byte, 1),
+		Send: sendChanClose,
 	}
 	sender.User.ID = 1
 
+	sendRChanClose := chan_close.NewChanClose[[]byte](make(chan []byte, 1))
 	receiver := client.Client{
-		Send: make(chan []byte, 1),
+		Send: sendRChanClose,
 	}
 	roomID := uuid.New()
 
@@ -343,8 +347,8 @@ func TestHandleClientOnMessage(t *testing.T) {
 	err := MessageUsecase.HandleClientOnMessage(&sender, &receiver, pubMes, saveChan)
 	getMes := <-saveChan
 	assert.Nil(t, err)
-	assert.Equal(t, jsonMessage, <-receiver.Send)
-	assert.Equal(t, jsonMessage, <-sender.Send)
+	assert.Equal(t, jsonMessage, <-receiver.Send.Chan)
+	assert.Equal(t, jsonMessage, <-sender.Send.Chan)
 	assert.Equal(t, message.ID, getMes.ID)
 }
 
@@ -359,15 +363,17 @@ func TestHandleLeaveMessage(t *testing.T) {
 
 	roomRepo.EXPECT().Close(gomock.Any(), roomID).Times(1)
 
+	sendChanClose := chan_close.NewChanClose[[]byte](make(chan []byte, 1))
 	sender := &client.Client{
-		Send:   make(chan []byte, 1),
+		Send:   sendChanClose,
 		RoomId: roomID,
 		PairId: 1,
 	}
 	sender.User.ID = 1
 
+	sendRChanClose := chan_close.NewChanClose[[]byte](make(chan []byte, 1))
 	receiver := &client.Client{
-		Send:   make(chan []byte, 1),
+		Send:   sendRChanClose,
 		RoomId: roomID,
 		PairId: 1,
 	}
