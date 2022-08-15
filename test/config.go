@@ -9,7 +9,7 @@ import (
 var GormDialector = sqlite.Open(":memory:")
 
 var RedisOption = &redis.Options{
-	Addr:     "139.162.125.28:6379",
+	Addr:     "localhost:6379",
 	Password: "",
 	DB:       5,
 }

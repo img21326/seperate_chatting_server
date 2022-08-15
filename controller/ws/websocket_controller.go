@@ -8,9 +8,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	pubmessage "github.com/img21326/fb_chat/structure/pub_message"
-
+	chan_close "github.com/img21326/fb_chat/helper/chan_close"
 	errStruct "github.com/img21326/fb_chat/structure/error"
+	pubmessage "github.com/img21326/fb_chat/structure/pub_message"
 
 	"github.com/img21326/fb_chat/usecase/auth"
 	"github.com/img21326/fb_chat/usecase/ws"
@@ -62,9 +62,11 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 		return
 	}
 	contextBackground, cancel := context.WithCancel(context.Background())
+
+	sendChanClose := chan_close.NewChanClose[[]byte](make(chan []byte, 1024))
 	client := client.Client{
 		Conn:           conn,
-		Send:           make(chan []byte, 256),
+		Send:           sendChanClose,
 		PubMessageChan: c.PubMessageChan,
 		Ctx:            contextBackground,
 		CtxCancel:      cancel,
@@ -74,14 +76,14 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 	token, ok := ctx.GetQuery("token")
 	if !ok {
 		log.Printf("connection not set token")
-		client.Send <- []byte("{'error': 'NotSetToken'}")
+		_ = client.Send.Push([]byte("{'error': 'NotSetToken'}"))
 		cancel()
 		return
 	}
 	user, err := c.AuthUsecase.VerifyToken(token)
 	if err != nil {
 		log.Printf("verify token error: %v", err)
-		client.Send <- []byte(fmt.Sprintf("{'error': '%v'}", err))
+		_ = client.Send.Push([]byte(fmt.Sprintf("{'error': '%v'}", err)))
 		cancel()
 		return
 	}
@@ -91,7 +93,7 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 	room, err := c.WsUsecase.FindRoomByUserId(ctx, user.ID)
 	if err != nil && err != gorm.ErrRecordNotFound && err != errStruct.RoomIsClose {
 		log.Printf("find room error: %v", err)
-		client.Send <- []byte("{'error': 'FindRoomError'}")
+		_ = client.Send.Push([]byte("{'error': 'FindRoomError'}"))
 		cancel()
 		return
 	}
@@ -106,19 +108,19 @@ func (c *WebsocketController) WS(ctx *gin.Context) {
 		} else {
 			client.PairId = room.UserId1
 		}
-		client.Send <- []byte("{'type': 'InRoom'}")
+		_ = client.Send.Push([]byte("{'type': 'InRoom'}"))
 	} else {
 		log.Printf("new ws connection: %v with new pairing", user.UUID)
 		want, ok := ctx.GetQuery("want")
 		if !ok {
 			log.Print("not set want params err")
-			client.Send <- []byte("{'error': 'NotSetWantParams'}")
+			_ = client.Send.Push([]byte("{'error': 'NotSetWantParams'}"))
 			cancel()
 			return
 		}
 		client.WantToFind = want
 		c.ClientQueueChan <- &client
-		client.Send <- []byte("{'type': 'Paring'}")
+		_ = client.Send.Push([]byte("{'type': 'Paring'}"))
 	}
 	go client.ReadPump()
 }

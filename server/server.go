@@ -58,7 +58,7 @@ func StartUpRedisServer(db *gorm.DB, redis *redis.Client, port string) {
 
 	authUsecase := auth.NewAuthUsecase(jwtConfig, userRepo)
 	wsUsecase := ws.NewRedisWebsocketUsecase(localOnlineRepo, onlineRepo, roomRepo)
-	subUsecase := pubsub.NewRedisSubUsecase(pubSubRepo)
+	subUsecase := pubsub.NewSubUsecase(pubSubRepo)
 	pairUsecase := pair.NewRedisSubUsecase(waitRepo, onlineRepo, roomRepo)
 	messageUsecase := message.NewMessageUsecase(messageRepo, roomRepo, localOnlineRepo)
 
@@ -114,17 +114,17 @@ func StartUpLocalServer(db *gorm.DB, port string) {
 	shutdownChan := make(chan os.Signal, 1)
 	signal.Notify(shutdownChan, syscall.SIGINT, syscall.SIGTERM)
 
-	messageRepo, localOnlineRepo, onlineRepo, roomRepo, userRepo, waitRepo, pubSubRepo := initLocalRepo(db)
+	messageLocalRepo, localOnlineLocalRepo, onlineLocalRepo, roomLocalRepo, userLocalRepo, waitLocalRepo, pubSubLocalRepo := initLocalRepo(db)
 	jwtConfig := auth.JwtConfig{
 		Key:            []byte("secret168"),
 		ExpireDuration: time.Hour * 24,
 	}
 
-	authUsecase := auth.NewAuthUsecase(jwtConfig, userRepo)
-	wsUsecase := ws.NewRedisWebsocketUsecase(localOnlineRepo, onlineRepo, roomRepo)
-	subUsecase := pubsub.NewRedisSubUsecase(pubSubRepo)
-	pairUsecase := pair.NewRedisSubUsecase(waitRepo, onlineRepo, roomRepo)
-	messageUsecase := message.NewMessageUsecase(messageRepo, roomRepo, localOnlineRepo)
+	authUsecase := auth.NewAuthUsecase(jwtConfig, userLocalRepo)
+	wsUsecase := ws.NewRedisWebsocketUsecase(localOnlineLocalRepo, onlineLocalRepo, roomLocalRepo)
+	subUsecase := pubsub.NewSubUsecase(pubSubLocalRepo)
+	pairUsecase := pair.NewRedisSubUsecase(waitLocalRepo, onlineLocalRepo, roomLocalRepo)
+	messageUsecase := message.NewMessageUsecase(messageLocalRepo, roomLocalRepo, localOnlineLocalRepo)
 
 	pubChan, queueChan := hub.StartHub(ctx, subUsecase, pairUsecase, messageUsecase, wsUsecase)
 
