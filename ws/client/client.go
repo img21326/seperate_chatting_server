@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	chan_close "github.com/img21326/fb_chat/helper/chan_close"
 	"github.com/img21326/fb_chat/structure/message"
 	pubmessage "github.com/img21326/fb_chat/structure/pub_message"
 	"github.com/img21326/fb_chat/structure/user"
@@ -19,7 +20,7 @@ type Client struct {
 	Ctx            context.Context
 	CtxCancel      context.CancelFunc
 	PubMessageChan chan *pubmessage.PublishMessage
-	Send           chan []byte
+	Send           *chan_close.ChannelClose[[]byte]
 	User           user.User
 	WantToFind     string
 	RoomId         uuid.UUID
@@ -52,6 +53,7 @@ func (c *Client) ReadPump() {
 			return
 		default:
 			_, messageByte, err := c.Conn.ReadMessage()
+			log.Printf("%v", string(messageByte[:]))
 			if err != nil {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 					log.Printf("websocket unexcept error: %v", err)
@@ -106,7 +108,7 @@ func (c *Client) WritePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		close(c.Send)
+		c.Send.Close()
 		time.Sleep(3 * time.Second)
 		c.Conn.Close()
 	}()
@@ -114,7 +116,7 @@ func (c *Client) WritePump() {
 		select {
 		case <-c.Ctx.Done():
 			return
-		case message, ok := <-c.Send:
+		case message, ok := <-c.Send.Chan:
 			log.Printf("[websocket client] get send message: %v", string(message[:]))
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
@@ -133,9 +135,9 @@ func (c *Client) WritePump() {
 			w.Write(message)
 
 			// Add queued chat messages to the current websocket message.
-			n := len(c.Send)
+			n := len(c.Send.Chan)
 			for i := 0; i < n; i++ {
-				w.Write(<-c.Send)
+				w.Write(<-c.Send.Chan)
 			}
 
 			if err := w.Close(); err != nil {
