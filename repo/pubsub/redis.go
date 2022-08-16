@@ -20,7 +20,7 @@ func NewRedisPubSubRepo(redis *redis.Client) PubSubRepoInterface {
 
 func (repo *RedisPubSubRepo) Sub(ctx context.Context, topic string) func() ([]byte, error) {
 	PubSub := repo.Redis.Subscribe(ctx, topic)
-	ReturnChan := make(chan *pub.ReceiveMessage)
+	ReturnChan := make(chan *pub.ReceiveMessage, 1024)
 	go func(ctx context.Context, PubSub *redis.PubSub, ReturnChan chan *pub.ReceiveMessage) {
 		for {
 			select {
