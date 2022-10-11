@@ -2,7 +2,6 @@ package pair
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/img21326/fb_chat/repo/online"
@@ -30,12 +29,15 @@ func NewRedisSubUsecase(
 	}
 }
 
-func (u *RedisPairUsecase) getInsertQueueName(client *client.Client) string {
-	return fmt.Sprintf("%v_%v", client.User.Gender, client.WantToFind)
-}
-
 func (u *RedisPairUsecase) getPairQueueName(client *client.Client) string {
-	return fmt.Sprintf("%v_%v", client.WantToFind, client.User.Gender)
+	// return fmt.Sprintf("%v_%v", client.WantToFind, client.User.Gender)
+	if client.WantToFind == client.User.Gender {
+		if client.WantToFind == "male" {
+			return "0"
+		}
+		return "1"
+	}
+	return "2"
 }
 
 func (u *RedisPairUsecase) TryToPair(ctx context.Context, client *client.Client) (newRoom *room.Room, err error) {
@@ -71,7 +73,7 @@ func (u *RedisPairUsecase) TryToPair(ctx context.Context, client *client.Client)
 }
 
 func (u *RedisPairUsecase) AddToQueue(ctx context.Context, client *client.Client) {
-	u.WaitRepo.Add(ctx, u.getInsertQueueName(client), client.User.ID)
+	u.WaitRepo.Add(ctx, u.getPairQueueName(client), client.User.ID)
 	log.Printf("[PairUsecase] add queue user: %v\n", client.User.ID)
 }
 

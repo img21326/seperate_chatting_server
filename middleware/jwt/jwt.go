@@ -37,7 +37,7 @@ func (j *JWTValidMiddleware) ValidHeaderToken(c *gin.Context) {
 		} else {
 			c.JSON(500, gin.H{
 				"status": false,
-				"msg":    fmt.Sprintf("jwt vaild error: %v", err),
+				"msg":    fmt.Sprintf("jwt valid error: %v", err),
 			})
 			c.AbortWithStatus(500)
 			return

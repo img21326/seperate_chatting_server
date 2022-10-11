@@ -18,7 +18,7 @@ func TestTryToPairWithLenSmallerThan1(t *testing.T) {
 	c := gomock.NewController(t)
 	waitRepo := mock.NewMockWaitRepoInterface(c)
 
-	waitRepo.EXPECT().Len(gomock.Any(), "female_male").Times(1).Return(0)
+	waitRepo.EXPECT().Len(gomock.Any(), "2").Times(1).Return(0)
 
 	pairUsecase := RedisPairUsecase{
 		WaitRepo: waitRepo,
@@ -38,8 +38,8 @@ func TestTryToPairWithSuccess(t *testing.T) {
 	waitRepo := mock.NewMockWaitRepoInterface(c)
 	onlineRepo := mock.NewMockOnlineRepoInterface(c)
 
-	waitRepo.EXPECT().Len(gomock.Any(), "female_male").Times(1).Return(1)
-	waitRepo.EXPECT().Pop(gomock.Any(), "female_male").Times(1).Return(uint(2), nil)
+	waitRepo.EXPECT().Len(gomock.Any(), "2").Times(1).Return(1)
+	waitRepo.EXPECT().Pop(gomock.Any(), "2").Times(1).Return(uint(2), nil)
 	onlineRepo.EXPECT().CheckUserOnline(gomock.Any(), uint(2)).Times(1).Return(true)
 
 	pairUsecase := RedisPairUsecase{
@@ -62,9 +62,9 @@ func TestTryToPairWithUserNotOnline(t *testing.T) {
 	waitRepo := mock.NewMockWaitRepoInterface(c)
 	onlineRepo := mock.NewMockOnlineRepoInterface(c)
 
-	waitRepo.EXPECT().Len(gomock.Any(), "female_male").AnyTimes().Return(1)
+	waitRepo.EXPECT().Len(gomock.Any(), "2").AnyTimes().Return(1)
 	pairID := uint(0)
-	waitRepo.EXPECT().Pop(gomock.Any(), "female_male").AnyTimes().
+	waitRepo.EXPECT().Pop(gomock.Any(), "2").AnyTimes().
 		DoAndReturn(func(ctx context.Context, queuename string) (uint, error) {
 			pairID += 1
 			return pairID, nil
@@ -99,7 +99,7 @@ func TestAddToQueue(t *testing.T) {
 	c := gomock.NewController(t)
 	waitRepo := mock.NewMockWaitRepoInterface(c)
 
-	waitRepo.EXPECT().Add(gomock.Any(), "male_female", uint(1)).Times(1)
+	waitRepo.EXPECT().Add(gomock.Any(), "2", uint(1)).Times(1)
 	pairUsecase := RedisPairUsecase{
 		WaitRepo: waitRepo,
 	}

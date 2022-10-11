@@ -55,7 +55,9 @@ func (repo *LocalPubSubRepo) Sub(ctx context.Context, topic string) func() ([]by
 func (repo *LocalPubSubRepo) Pub(ctx context.Context, topic string, message []byte) error {
 	rm := &pub.ReceiveMessage{Payload: message, Error: nil}
 	for _, ch := range repo.SubscribeMap[topic] {
-		_ = ch.Push(rm)
+		if !ch.Closed {
+			_ = ch.Push(rm)
+		}
 	}
 	return nil
 }

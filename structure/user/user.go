@@ -7,9 +7,9 @@ import (
 
 // Model
 type User struct {
-	gorm.Model `gorm:"index:idx_name,unique"`
-	UUID       uuid.UUID
-	Gender     string
+	gorm.Model
+	UUID   uuid.UUID `gorm:"index:idx_name,unique"`
+	Gender string
 	// FbID       string
 	// Name       string
 	// Email      string
